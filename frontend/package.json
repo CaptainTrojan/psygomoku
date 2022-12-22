@@ -1,5 +1,5 @@
 {
-  "name": "psygomoku",
+  "name": "psygo-frontend",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -17,5 +17,9 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",
     "vite": "^4.0.0"
-  }
+  },
+  "description": "Psygomoku frontend.",
+  "main": "vite.config.js",
+  "author": "captaintrojan",
+  "license": "ISC"
 }

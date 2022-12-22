@@ -11,6 +11,9 @@ export default defineConfig({
     }
   },
   server: {
-    host: true
+    host: true,
+    port: 8080,
+    strictPort: true,
+    headers: { 'Access-Control-Allow-Origin': '*' }
   }
 })
