@@ -1,22 +1,16 @@
 import { Server } from "socket.io";
 
 const io = new Server(3000, {
-    handlePreflightRequest: (req, res) => {
-        const headers = {
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Allow-Origin': req.headers.origin,
-            'Access-Control-Allow-Credentials': true,
-        }
-        res.writeHead(200, headers)
-        res.end()
-    },
+    cors: {
+        origin: "*", // TODO!
+    }
 });
 
 const all_connections = new Set();
 
 console.log("Listening on port 3000.")
 
-io.on('connect', (socket) => {
+io.on('connection', (socket) => {
     console.log('a user connected with IP', socket.conn.remoteAddress);
 
     socket.username = "Anonymous";

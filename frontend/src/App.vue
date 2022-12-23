@@ -3,7 +3,6 @@
 </template>
 
 <script>
-import SocketioService from "@/services/socketio.service";
 
 export default {
   name: "App",
