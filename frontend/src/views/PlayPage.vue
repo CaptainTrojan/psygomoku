@@ -1,17 +1,31 @@
 <template>
   <h1>Connected: {{ connected }}</h1>
+
+  <Lobby @clickeded="toggle_game" v-if="in_lobby"></Lobby>
+  <Game v-if="!in_lobby"></Game>
 </template>
 
 <script>
 
 import {SocketioService} from "@/services/socketio.service";
 import {ConnectionCallback} from "@/services/socketio.service";
+import Lobby from "@/components/play/Lobby.vue"
+import Game from "@/components/play/Game.vue"
 
 export default {
   name: "PlayPage",
+  components: {
+    Lobby, Game
+  },
   data(){
     return {
-      connected: false
+      in_lobby: true,
+      connected: false,
+    }
+  },
+  methods: {
+    toggle_game(){
+      this.in_lobby = !this.in_lobby;
     }
   },
   mounted() {
@@ -36,6 +50,7 @@ export default {
     SocketioService.closeConnection();
   }
 }
+
 </script>
 
 <style scoped>

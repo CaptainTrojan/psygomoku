@@ -6,6 +6,7 @@ import {createApp} from "vue";
 import {createRouter, createWebHashHistory} from "vue-router";
 import PlayPage from "@/views/PlayPage.vue";
 
+
 const routes = [
     { path: '/', component: IntroPage},
     { path: '/tutorial', component: TutorialPage},
