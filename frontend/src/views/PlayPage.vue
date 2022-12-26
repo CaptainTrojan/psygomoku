@@ -1,7 +1,7 @@
 <template>
-  <h1>Connected: {{ connected }}</h1>
+  <h1>Connected: {{ connected }}</h1><br/>
 
-  <Lobby @clickeded="toggle_game" v-if="in_lobby"></Lobby>
+  <Lobby v-if="in_lobby"></Lobby>
   <Game v-if="!in_lobby"></Game>
 </template>
 
@@ -28,25 +28,25 @@ export default {
       this.in_lobby = !this.in_lobby;
     }
   },
-  mounted() {
-    console.log("Setup called.");
+  beforeMount() {
+    console.log("Mounting play page...");
     let self = this;
     SocketioService.setupSocketConnection(
       new ConnectionCallback(
         function (){
           self.connected = true;
         },
-          function (){
+        function (){
           self.connected = false;
         },
-          function (){
+        function (){
           self.connected = false;
         },
       )
     );
   },
   unmounted() {
-    console.log("Unmounted called.");
+    console.log("Unmounted play page.");
     SocketioService.closeConnection();
   }
 }
