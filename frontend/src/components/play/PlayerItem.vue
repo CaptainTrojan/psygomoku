@@ -1,6 +1,6 @@
 <template>
   <div class="player-item">
-    <h4>#{{index}} - {{nickname}} <button @click="emitChallenge(nickname)">challenge</button></h4>
+    <h4>{{nickname}} {{state}} <button @click="emitChallenge(nickname)">challenge</button></h4>
   </div>
 </template>
 
@@ -10,8 +10,8 @@ export default {
   name: "PlayerItem",
   props: {
     nickname: { required: true, type: String},
+    state: {required: true, type: Object},
     id: {required: true, type: String},
-    index: {required: true}
   },
   methods: {
     emitChallenge(nickname) {

@@ -3,11 +3,11 @@
     <h3>Your name is {{nickname}}. State: {{state}}</h3>
   </div>
   <div id="player_list">
-    <PlayerItem v-for="(item, index) in players"
+    <PlayerItem v-for="player in Object.values(players)"
                 @challenging="challenging"
-                :nickname="item.nickname"
-                :index="index"
-                :id="item.nickname"></PlayerItem>
+                :nickname="player.nickname"
+                :state="player.state"
+                :id="players.nickname"></PlayerItem>
   </div>
 </template>
 
@@ -18,11 +18,8 @@ import {closeDialog, openDialog} from "vue3-promise-dialog";
 import ChallengingDialog from "@/components/play/ChallengingDialog.vue";
 import ChallengedDialog from "@/components/play/ChallengedDialog.vue";
 
-const noop = () => {};
-const EMPTY_CALLBACK = new LobbyCallback(noop, noop, noop, noop);
-
 const STATE = {
-  DEFAULT: 'idle', CHALLENGING: 'challenging someone', CHALLENGED: 'being challenged'
+  IDLE: 'idle', CHALLENGING: 'challenging someone', CHALLENGED: 'being challenged', IN_GAME: 'in game'
 }
 
 export default {
@@ -32,22 +29,31 @@ export default {
     return {
       nickname: "<unknown>",
       other_nickname: null,
-      players: [],
-      state: STATE.DEFAULT
+      players: {},
+      state: STATE.IDLE
     }
   },
   methods: {
-    stateDefault(){
-      this.state = STATE.DEFAULT;
+    stateIdle(){
+      this.state = STATE.IDLE;
       this.other_nickname = null;
+      SocketioService.setState(this.state, this.nickname);
     },
     stateChallenging(whom){
       this.state = STATE.CHALLENGING;
       this.other_nickname = whom;
+      SocketioService.setState(this.state, this.nickname, this.other_nickname);
     },
     stateChallenged(by_whom){
       this.state = STATE.CHALLENGED;
       this.other_nickname = by_whom;
+      SocketioService.setState(this.state, this.nickname, this.other_nickname);
+    },
+    stateInGame(with_whom){
+      this.state = STATE.IN_GAME;
+      this.other_nickname = with_whom;
+      SocketioService.setState(this.state, this.nickname, this.other_nickname);
+      this.$emit('start-game');
     },
 
     async challenging(nickname){
@@ -57,14 +63,18 @@ export default {
       this.stateChallenging(nickname);
       let res = await openDialog(ChallengingDialog, {challenged: nickname});
       if(res.hasOwnProperty('result')){
-        console.log(res); //todo RESULT: handle cancel (easy)
+        console.log(res);
+        if(res.result === 'accepted'){
+          this.stateInGame(nickname);
+          return;
+        }
       } else {
         SocketioService.sendMessage(res);
       }
-      this.stateDefault();
+      this.stateIdle();
     },
   },
-  emits: ['sendMessage'],
+  emits: ['sendMessage', 'start-game'],
   beforeMount() {
     console.log("Mounting lobby...");
     let self = this;
@@ -92,15 +102,19 @@ export default {
 
           switch(msg.state){
             case 'open': {
-              if(self.state === STATE.DEFAULT){
+              if(self.state === STATE.IDLE){
                 self.stateChallenged(msg.sender);
                 let res = await openDialog(ChallengedDialog, {challenger: msg.sender});
                 if(res.hasOwnProperty('result')){
-                  console.log(res);  //todo RESULT: handle cancel
+                  console.log(res);  //todo RESULT: handle close
                 }else{
                   SocketioService.sendMessage(res);
+                  if(res.state === 'accept'){
+                    self.stateInGame(msg.sender);
+                    return;
+                  }
                 }
-                self.stateDefault();
+                self.stateIdle();
               }else{
                 // send decline, because open will lead to challenging dialog
                 SocketioService.sendMessage(
@@ -112,8 +126,7 @@ export default {
             case 'accept': {
               if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
                 closeDialog({'result': 'accepted'})
-                alert("Accepted!");
-                self.stateDefault();
+                self.stateIdle();
               }else{
                 // send close, because accept will lead to game screen
                 SocketioService.sendMessage(
@@ -126,7 +139,7 @@ export default {
               if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
                 closeDialog({'result': 'declined'})
                 alert("Declined!");
-                self.stateDefault();
+                self.stateIdle();
               }else{
                 // doesn't have to send anything, because decline leaves user in lobby
               }
@@ -135,7 +148,7 @@ export default {
             case 'close': {
               if(self.state === STATE.CHALLENGED && self.other_nickname === msg.sender){
                 closeDialog({'result': 'closed'})
-                self.stateDefault();
+                self.stateIdle();
               }else{
                 // doesn't have to send anything, because close leaves user in lobby
               }
@@ -149,18 +162,28 @@ export default {
         function (nickname){
           console.log("Received nickname", nickname);
           self.nickname = nickname;
-          self.players = self.players.filter(user => user.nickname !== self.nickname);
+          delete self.players[nickname];
         },
         function(users){
           console.log("Received users change", users);
-          self.players = users.filter(user => user.nickname !== self.nickname)
+          self.players = users;
+          delete self.players[self.nickname];
+        },
+        function (user){
+          console.log("Received user state update", user);
+          if(self.players.hasOwnProperty(user.nickname)){
+            self.players[user.nickname] = user;
+          }
         }
       )
     );
+
+    this.stateIdle();
+    SocketioService.getLobbyInfo();
   },
   unmounted() {
+    SocketioService.unregisterLobbyHandlers();
     console.log("Unmounted lobby.");
-    SocketioService.registerLobbyHandlers(EMPTY_CALLBACK);
   }
 }
 </script>

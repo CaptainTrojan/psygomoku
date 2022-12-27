@@ -1,8 +1,8 @@
 <template>
   <h1>Connected: {{ connected }}</h1><br/>
 
-  <Lobby v-if="in_lobby"></Lobby>
-  <Game v-if="!in_lobby"></Game>
+  <Lobby @start-game="toggle_game" v-if="in_lobby"></Lobby>
+  <Game @end-game="toggle_game" v-if="!in_lobby"></Game>
 </template>
 
 <script>

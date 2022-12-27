@@ -11,10 +11,19 @@ const all_connections = {};
 console.log("Listening on port 3000.")
 
 function notify_users_change() {
-    let sockets = Object.values(all_connections);
-    io.emit("users_change", sockets.map(s => s.user_object));
-    console.log("Remaining users (" + sockets.length + "):")
-    sockets.forEach(s => console.log(s.user_object));
+    let users = {};
+
+    for (const [k, v] of Object.entries(all_connections)) {
+        users[k] = v.user_object;
+    }
+
+    io.emit("users_change", users);
+}
+
+function notify_user_state_update(user_nickname) {
+    console.log("output socket state", all_connections[user_nickname].user_object);
+
+    io.emit("user_state_update", all_connections[user_nickname].user_object);
 }
 
 io.on('connection', (socket) => {
@@ -22,9 +31,28 @@ io.on('connection', (socket) => {
 
     socket.user_object = {}
     socket.user_object.nickname = generateUsername("-", 2);
+    socket.user_object.state = {'state': 'idle', 'other_nickname': null}
     socket.emit("your_nickname", socket.user_object.nickname);
     all_connections[socket.user_object.nickname] = socket;
     notify_users_change();
+
+    socket.on('get-lobby-info', () => {
+        socket.emit("your_nickname", socket.user_object.nickname);
+        notify_users_change();
+    });
+
+    socket.on('my-state', (state) => {
+        console.log("input socket state", state, socket.user_object.nickname);
+        if(state.hasOwnProperty('state')){
+            socket.user_object.state.state = state.state;
+        }
+        if(state.hasOwnProperty('other_nickname')){
+            socket.user_object.state.other_nickname = state.other_nickname;
+        }else{
+            socket.user_object.state.other_nickname = null;
+        }
+        notify_user_state_update(socket.user_object.nickname);
+    });
 
     socket.on('disconnect', () => {
         console.log('user disconnected')

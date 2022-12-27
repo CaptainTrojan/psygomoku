@@ -41,8 +41,16 @@ class SocketioService {
     public static registerLobbyHandlers(lobbyCallback){
         this.socket.on("message", lobbyCallback.on_message);
         this.socket.on("users_change", lobbyCallback.on_users_change);
+        this.socket.on("user_state_update", lobbyCallback.on_user_state_update);
         this.socket.on("your_nickname", lobbyCallback.on_your_nickname);
         this.socket.on("custom_error", lobbyCallback.on_custom_error);
+    }
+
+    public static unregisterLobbyHandlers(){
+        this.socket.off("message");
+        this.socket.off("users_change");
+        this.socket.off("your_nickname");
+        this.socket.off("custom_error");
     }
 
     static sendMessage(message) {
@@ -58,6 +66,14 @@ class SocketioService {
         }
 
         this.socket.emit("message", message);
+    }
+
+    static getLobbyInfo() {
+        this.socket.emit("get-lobby-info");
+    }
+
+    static setState(state: string, nickname: string, other_nickname?: string) {
+        this.socket.emit("my-state", {'state': state, 'other_nickname': other_nickname})
     }
 }
 
@@ -78,12 +94,14 @@ class LobbyCallback {
     on_custom_error;
     on_your_nickname;
     on_users_change;
+    on_user_state_update;
 
-    constructor(on_message, on_custom_error, on_your_nickname, on_users_change) {
+    constructor(on_message, on_custom_error, on_your_nickname, on_users_change, on_user_state_update) {
         this.on_message = on_message;
         this.on_custom_error = on_custom_error;
         this.on_your_nickname = on_your_nickname;
         this.on_users_change = on_users_change;
+        this.on_user_state_update = on_user_state_update;
     }
 }
 
