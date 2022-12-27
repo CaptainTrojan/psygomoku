@@ -5,6 +5,7 @@
 
 <script>
 import {SocketioService} from "@/services/socketio.service";
+// TODO Pinia/VUEX?
 
 export default {
   name: "Game",

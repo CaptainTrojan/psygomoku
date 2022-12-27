@@ -7,7 +7,7 @@
                 @challenging="challenging"
                 :nickname="player.nickname"
                 :state="player.state"
-                :id="players.nickname"></PlayerItem>
+                :id="player.nickname"></PlayerItem>
   </div>
 </template>
 
@@ -30,10 +30,15 @@ export default {
       nickname: "<unknown>",
       other_nickname: null,
       players: {},
-      state: STATE.IDLE
+      state: STATE.IDLE,
+      popup_showing: false,
     }
   },
+  emits: ['sendMessage', 'start-game', 'popup'],
   methods: {
+    popup(text){
+      this.$emit('popup', text);
+    },
     stateIdle(){
       this.state = STATE.IDLE;
       this.other_nickname = null;
@@ -74,7 +79,6 @@ export default {
       this.stateIdle();
     },
   },
-  emits: ['sendMessage', 'start-game'],
   beforeMount() {
     console.log("Mounting lobby...");
     let self = this;
@@ -106,7 +110,11 @@ export default {
                 self.stateChallenged(msg.sender);
                 let res = await openDialog(ChallengedDialog, {challenger: msg.sender});
                 if(res.hasOwnProperty('result')){
-                  console.log(res);  //todo RESULT: handle close
+                  if(res.result === 'disconnected') {
+                    self.popup(`The challenger, ${msg.sender}, has disconnected.`);
+                  }else{
+                    self.popup(`The challenger, ${msg.sender}, has cancelled the challenge.`);
+                  }
                 }else{
                   SocketioService.sendMessage(res);
                   if(res.state === 'accept'){
@@ -138,7 +146,7 @@ export default {
             case 'decline': {
               if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
                 closeDialog({'result': 'declined'})
-                alert("Declined!"); // TODO handle decline with a nice bar display
+                self.popup(`${msg.sender} has declined your challenge request.`);
                 self.stateIdle();
               }else{
                 // doesn't have to send anything, because decline leaves user in lobby
@@ -149,7 +157,6 @@ export default {
               if(self.other_nickname === msg.sender &&
                   (self.state === STATE.CHALLENGED || self.state === STATE.CHALLENGING)){
                 closeDialog({'result': 'closed'})
-                // TODO handle close with a nice bar display
                 self.stateIdle();
               }else{
                 // doesn't have to send anything, because close leaves user in lobby
@@ -180,7 +187,6 @@ export default {
         function(){
           console.log("Other disconnected.")
           closeDialog({'result': 'disconnected'})
-          // TODO handle disconnect with a nice bar display
           self.stateIdle();
         }
       )
