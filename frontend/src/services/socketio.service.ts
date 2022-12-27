@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import * as assert from "assert";
 
 class SocketioService {
     static socket;
@@ -42,6 +43,21 @@ class SocketioService {
         this.socket.on("users_change", lobbyCallback.on_users_change);
         this.socket.on("your_nickname", lobbyCallback.on_your_nickname);
         this.socket.on("custom_error", lobbyCallback.on_custom_error);
+    }
+
+    static sendMessage(message) {
+        console.log("Trying to send message: ", message);
+
+        if(!this.is_open){
+            console.log("WARNING: socket is not open")
+            throw new Error(`Message ${JSON.stringify(message)} cannot be sent, because the socket is not opened.`);
+        }
+
+        if(!message.hasOwnProperty('recipient')){
+            throw new Error(`Message ${JSON.stringify(message)} cannot be sent, because it has no recipient.`);
+        }
+
+        this.socket.emit("message", message);
     }
 }
 

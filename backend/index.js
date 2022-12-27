@@ -33,8 +33,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('message', (msg) => {
+        if(msg === null){
+            console.log("Received null message! wtf?")
+            return;
+        }
         msg.sender = socket.user_object.nickname;
-        console.log(`received message: ${msg}`)
+        console.log(`received message`, msg)
         if(msg.hasOwnProperty('recipient') &&
             msg.recipient !== msg.sender &&
             all_connections[msg.recipient] !== undefined){

@@ -1,10 +1,11 @@
 <template>
   <div class="player-item">
-    <h4>#{{index}} - {{nickname}}</h4>
+    <h4>#{{index}} - {{nickname}} <button @click="emitChallenge(nickname)">challenge</button></h4>
   </div>
 </template>
 
 <script>
+
 export default {
   name: "PlayerItem",
   props: {
@@ -12,7 +13,12 @@ export default {
     id: {required: true, type: String},
     index: {required: true}
   },
-  emits: ["challenged"]
+  methods: {
+    emitChallenge(nickname) {
+      this.$emit('challenging', nickname)
+    }
+  },
+  emits: ["challenging"]
 }
 </script>
 

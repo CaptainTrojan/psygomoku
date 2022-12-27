@@ -5,6 +5,7 @@ import './assets/main.css'
 import {createApp} from "vue";
 import {createRouter, createWebHashHistory} from "vue-router";
 import PlayPage from "@/views/PlayPage.vue";
+import {PromiseDialog} from "vue3-promise-dialog";
 
 
 const routes = [
@@ -20,4 +21,5 @@ const router = createRouter({
 
 createApp(App)
     .use(router)
+    .use(PromiseDialog)
     .mount('#app')
