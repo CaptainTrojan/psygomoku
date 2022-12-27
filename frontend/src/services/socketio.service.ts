@@ -44,13 +44,16 @@ class SocketioService {
         this.socket.on("user_state_update", lobbyCallback.on_user_state_update);
         this.socket.on("your_nickname", lobbyCallback.on_your_nickname);
         this.socket.on("custom_error", lobbyCallback.on_custom_error);
+        this.socket.on("other_disconnected", lobbyCallback.on_other_disconnected);
     }
 
     public static unregisterLobbyHandlers(){
         this.socket.off("message");
         this.socket.off("users_change");
+        this.socket.off("users_state_update");
         this.socket.off("your_nickname");
         this.socket.off("custom_error");
+        this.socket.off("other_disconnected");
     }
 
     static sendMessage(message) {
@@ -95,13 +98,16 @@ class LobbyCallback {
     on_your_nickname;
     on_users_change;
     on_user_state_update;
+    on_other_disconnected;
 
-    constructor(on_message, on_custom_error, on_your_nickname, on_users_change, on_user_state_update) {
+    constructor(on_message, on_custom_error, on_your_nickname,
+                on_users_change, on_user_state_update, on_other_disconnected) {
         this.on_message = on_message;
         this.on_custom_error = on_custom_error;
         this.on_your_nickname = on_your_nickname;
         this.on_users_change = on_users_change;
         this.on_user_state_update = on_user_state_update;
+        this.on_other_disconnected = on_other_disconnected;
     }
 }
 

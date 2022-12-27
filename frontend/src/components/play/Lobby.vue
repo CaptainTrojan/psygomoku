@@ -138,7 +138,7 @@ export default {
             case 'decline': {
               if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
                 closeDialog({'result': 'declined'})
-                alert("Declined!");
+                alert("Declined!"); // TODO handle decline with a nice bar display
                 self.stateIdle();
               }else{
                 // doesn't have to send anything, because decline leaves user in lobby
@@ -146,8 +146,10 @@ export default {
               break;
             }
             case 'close': {
-              if(self.state === STATE.CHALLENGED && self.other_nickname === msg.sender){
+              if(self.other_nickname === msg.sender &&
+                  (self.state === STATE.CHALLENGED || self.state === STATE.CHALLENGING)){
                 closeDialog({'result': 'closed'})
+                // TODO handle close with a nice bar display
                 self.stateIdle();
               }else{
                 // doesn't have to send anything, because close leaves user in lobby
@@ -174,6 +176,12 @@ export default {
           if(self.players.hasOwnProperty(user.nickname)){
             self.players[user.nickname] = user;
           }
+        },
+        function(){
+          console.log("Other disconnected.")
+          closeDialog({'result': 'disconnected'})
+          // TODO handle disconnect with a nice bar display
+          self.stateIdle();
         }
       )
     );
