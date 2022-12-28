@@ -27,63 +27,8 @@ export default {
   name: "Lobby",
   components: {PlayerItem},
   data() {
-    return {
-      current_user,
-      players: {},
-      state: STATE.IDLE,
-      popup_showing: false,
-    }
-  },
-  emits: ['sendMessage', 'start-game', 'popup'],
-  methods: {
-    popup(text){
-      this.$emit('popup', text);
-    },
-    stateIdle(){
-      this.state = STATE.IDLE;
-      current_user.other_nickname = null;
-      SocketioService.setState(this.state, current_user.nickname);
-    },
-    stateChallenging(whom){
-      this.state = STATE.CHALLENGING;
-      current_user.other_nickname = whom;
-      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
-    },
-    stateChallenged(by_whom){
-      this.state = STATE.CHALLENGED;
-      current_user.other_nickname = by_whom;
-      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
-    },
-    stateInGame(with_whom){
-      this.state = STATE.IN_GAME;
-      current_user.other_nickname = with_whom;
-      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
-      this.$emit('start-game');
-    },
-
-    async challenging(nickname){
-      let message = {'type': 'challenge', 'recipient': nickname, 'state': 'open', 'action': 'manual'}
-      SocketioService.sendMessage(message);
-
-      this.stateChallenging(nickname);
-      let res = await openDialog(ChallengingDialog, {challenged: nickname});
-      if(res.hasOwnProperty('result')){
-        console.log(res);
-        if(res.result === 'accepted'){
-          this.stateInGame(nickname);
-          return;
-        }
-      } else {
-        SocketioService.sendMessage(res);
-      }
-      this.stateIdle();
-    },
-  },
-  beforeMount() {
-    console.log("Mounting lobby...");
     let self = this;
-    SocketioService.registerLobbyHandlers(
-      new LobbyCallback(
+    const CALLBACK = new LobbyCallback(
         async function (msg){
           console.log("<" + current_user.nickname + "> MESSAGE INCOMING: ", msg);
 
@@ -189,15 +134,67 @@ export default {
           closeDialog({'result': 'disconnected'})
           self.stateIdle();
         }
-      )
     );
+
+    return {
+      current_user,
+      players: {},
+      state: STATE.IDLE,
+      popup_showing: false,
+      CALLBACK
+    }
+  },
+  emits: ['sendMessage', 'start-game', 'popup'],
+  methods: {
+    popup(text){
+      this.$emit('popup', text);
+    },
+    stateIdle(){
+      this.state = STATE.IDLE;
+      current_user.other_nickname = null;
+      SocketioService.setState(this.state, current_user.nickname);
+    },
+    stateChallenging(whom){
+      this.state = STATE.CHALLENGING;
+      current_user.other_nickname = whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
+    },
+    stateChallenged(by_whom){
+      this.state = STATE.CHALLENGED;
+      current_user.other_nickname = by_whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
+    },
+    stateInGame(with_whom){
+      this.state = STATE.IN_GAME;
+      current_user.other_nickname = with_whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
+      this.$emit('start-game');
+    },
+
+    async challenging(nickname){
+      let message = {'type': 'challenge', 'recipient': nickname, 'state': 'open', 'action': 'manual'}
+      SocketioService.sendMessage(message);
+
+      this.stateChallenging(nickname);
+      let res = await openDialog(ChallengingDialog, {challenged: nickname});
+      if(res.hasOwnProperty('result')){
+        console.log(res);
+        if(res.result === 'accepted'){
+          this.stateInGame(nickname);
+          return;
+        }
+      } else {
+        SocketioService.sendMessage(res);
+      }
+      this.stateIdle();
+    },
+  },
+  mounted() {
+    console.log("Mounting lobby...");
+    SocketioService.registerHandlers(this.CALLBACK);
 
     this.stateIdle();
     SocketioService.getLobbyInfo();
-  },
-  beforeUnmount() {
-    SocketioService.unregisterAuxiliaryHandlers();
-    console.log("Unmounted lobby.");
   }
 }
 </script>

@@ -10,16 +10,9 @@ import {current_user} from "@/store";
 export default {
   name: "Game",
   data(){
-    return {
-      current_user
-    }
-  },
-  emits: ['end-game'],
-  beforeMount() {
-    console.log("Mounting game...");
     let self = this;
-    SocketioService.registerGameHandlers(
-      new GameCallback(
+
+    const CALLBACK = new GameCallback(
         async function (msg){
           console.log("<" + current_user.nickname + "> MESSAGE INCOMING: ", msg);
 
@@ -30,7 +23,7 @@ export default {
             return;
           }
 
-
+          // TODO game logic
         },
         function (err){
           console.log("Received custom error", err);
@@ -39,12 +32,17 @@ export default {
           console.log("Other disconnected.")
           self.$emit('end-game', current_user.other_nickname + " has disconnected.");
         }
-      )
     );
-  }, // TODO mount order?
-  beforeUnmount() {
-    SocketioService.unregisterAuxiliaryHandlers();
-    console.log("Unmounted game.");
+
+    return {
+      current_user,
+      CALLBACK
+    }
+  },
+  emits: ['end-game'],
+  mounted() {
+    console.log("Mounting game...");
+    SocketioService.registerHandlers(this.CALLBACK);
   }
 }
 </script>

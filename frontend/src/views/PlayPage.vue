@@ -20,10 +20,25 @@ export default {
     Lobby, Game
   },
   data(){
+    let self = this;
+
+    const CALLBACK = new ConnectionCallback(
+        function (){
+          self.connected = true;
+        },
+        function (){
+          self.connected = false;
+        },
+        function (){
+          self.connected = false;
+        },
+    );
+
     return {
       in_lobby: true,
       connected: false,
-      popup_showing: false
+      popup_showing: false,
+      CALLBACK
     }
   },
   methods: {
@@ -44,20 +59,7 @@ export default {
   },
   beforeMount() {
     console.log("Mounting play page...");
-    let self = this;
-    SocketioService.setupSocketConnection(
-      new ConnectionCallback(
-        function (){
-          self.connected = true;
-        },
-        function (){
-          self.connected = false;
-        },
-        function (){
-          self.connected = false;
-        },
-      )
-    );
+    SocketioService.setupSocketConnection(this.CALLBACK);
   },
   unmounted() {
     console.log("Unmounted play page.");
