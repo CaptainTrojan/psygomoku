@@ -195,8 +195,8 @@ export default {
     this.stateIdle();
     SocketioService.getLobbyInfo();
   },
-  unmounted() {
-    SocketioService.unregisterLobbyHandlers();
+  beforeUnmount() {
+    SocketioService.unregisterAuxiliaryHandlers();
     console.log("Unmounted lobby.");
   }
 }

@@ -27,8 +27,11 @@ export default {
     }
   },
   methods: {
-    toggle_game(){
+    toggle_game(text){
       this.in_lobby = !this.in_lobby;
+      if(text !== undefined){
+        this.popup(text);
+      }
     },
     popup(text){
       console.log(this.$refs)

@@ -47,7 +47,7 @@ class SocketioService {
         this.socket.on("other_disconnected", lobbyCallback.on_other_disconnected);
     }
 
-    public static unregisterLobbyHandlers(){
+    public static unregisterAuxiliaryHandlers(){
         this.socket.off("message");
         this.socket.off("users_change");
         this.socket.off("users_state_update");
@@ -77,6 +77,10 @@ class SocketioService {
 
     static setState(state: string, nickname: string, other_nickname?: string) {
         this.socket.emit("my-state", {'state': state, 'other_nickname': other_nickname})
+    }
+
+    static registerGameHandlers(gameCallback: GameCallback) {
+
     }
 }
 
@@ -111,4 +115,16 @@ class LobbyCallback {
     }
 }
 
-export {ConnectionCallback, LobbyCallback, SocketioService};
+class GameCallback {
+    on_message;
+    on_custom_error;
+    on_other_disconnected;
+
+    constructor(on_message, on_custom_error, on_other_disconnected) {
+        this.on_message = on_message;
+        this.on_custom_error = on_custom_error;
+        this.on_other_disconnected = on_other_disconnected;
+    }
+}
+
+export {ConnectionCallback, LobbyCallback, SocketioService, GameCallback};
