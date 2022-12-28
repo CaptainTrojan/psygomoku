@@ -1,6 +1,6 @@
 <template>
   <div id="header">
-    <h3>Your name is {{current_user.nickname}}. State: {{state}}</h3>
+    <h3>Your name is {{ current_user.nickname }}. State: {{ state }}</h3>
   </div>
   <div id="player_list">
     <PlayerItem v-for="player in Object.values(players)"
@@ -29,107 +29,111 @@ export default {
   data() {
     let self = this;
     const CALLBACK = new LobbyCallback(
-        async function (msg){
+        async function (msg) {
           console.log("<" + current_user.nickname + "> MESSAGE INCOMING: ", msg);
 
-          if(!msg.hasOwnProperty('type')
+          if (!msg.hasOwnProperty('type')
               || !msg.hasOwnProperty('sender')
-              || !msg.hasOwnProperty('recipient')){
+              || !msg.hasOwnProperty('recipient')) {
             console.log("Received corrupted message", msg);
             return;
           }
 
-          if(!msg.type === 'challenge'){
+          if (!msg.type === 'challenge') {
             console.log("Received message with unknown type ", msg);
             return;
           }
 
-          if(!msg.hasOwnProperty('state')){
+          if (!msg.hasOwnProperty('state')) {
             console.log("Received corrupted message", msg);
             return;
           }
 
-          switch(msg.state){
+          switch (msg.state) {
             case 'open': {
-              if(self.state === STATE.IDLE){
+              if (self.state === STATE.IDLE) {
                 self.stateChallenged(msg.sender);
                 let res = await openDialog(ChallengedDialog, {challenger: msg.sender});
-                if(res.hasOwnProperty('result')){
-                  if(res.result === 'disconnected') {
+                if (res.hasOwnProperty('result')) {
+                  if (res.result === 'disconnected') {
                     self.popup(`The challenger, ${msg.sender}, has disconnected.`);
-                  }else{
+                  } else {
                     self.popup(`The challenger, ${msg.sender}, has cancelled the challenge.`);
                   }
-                }else{
+                } else {
                   SocketioService.sendMessage(res);
-                  if(res.state === 'accept'){
+                  if (res.state === 'accept') {
                     self.stateInGame(msg.sender);
                     return;
                   }
                 }
                 self.stateIdle();
-              }else{
+              } else {
                 // send decline, because open will lead to challenging dialog
                 SocketioService.sendMessage(
-                    {'type': 'challenge', 'sender': msg.recipient,
-                      'recipient': msg.sender, 'state': 'decline', 'action': 'auto'});
+                    {
+                      'type': 'challenge', 'sender': msg.recipient,
+                      'recipient': msg.sender, 'state': 'decline', 'action': 'auto'
+                    });
               }
               break;
             }
             case 'accept': {
-              if(self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender){
+              if (self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender) {
                 closeDialog({'result': 'accepted'})
                 self.stateIdle();
-              }else{
+              } else {
                 // send close, because accept will lead to game screen
                 SocketioService.sendMessage(
-                    {'type': 'challenge', 'sender': msg.recipient,
-                      'recipient': msg.sender, 'state': 'close', 'action': 'auto'});
+                    {
+                      'type': 'challenge', 'sender': msg.recipient,
+                      'recipient': msg.sender, 'state': 'close', 'action': 'auto'
+                    });
               }
               break;
             }
             case 'decline': {
-              if(self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender){
+              if (self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender) {
                 closeDialog({'result': 'declined'})
                 self.popup(`${msg.sender} has declined your challenge request.`);
                 self.stateIdle();
-              }else{
+              } else {
                 // doesn't have to send anything, because decline leaves user in lobby
               }
               break;
             }
             case 'close': {
-              if(current_user.other_nickname === msg.sender &&
-                  (self.state === STATE.CHALLENGED || self.state === STATE.CHALLENGING)){
+              if (current_user.other_nickname === msg.sender &&
+                  (self.state === STATE.CHALLENGED || self.state === STATE.CHALLENGING)) {
                 closeDialog({'result': 'closed'})
                 self.stateIdle();
-              }else{
+              } else {
                 // doesn't have to send anything, because close leaves user in lobby
               }
               break;
             }
           }
         },
-        function (err){
+        function (err) {
           console.log("Received custom error", err);
         },
-        function (nickname){
+        function (nickname) {
           console.log("Received nickname", nickname);
           current_user.nickname = nickname;
           delete self.players[nickname];
         },
-        function(users){
+        function (users) {
           console.log("Received users change", users);
           self.players = users;
           delete self.players[current_user.nickname];
         },
-        function (user){
+        function (user) {
           console.log("Received user state update", user);
-          if(self.players.hasOwnProperty(user.nickname)){
+          if (self.players.hasOwnProperty(user.nickname)) {
             self.players[user.nickname] = user;
           }
         },
-        function(){
+        function () {
           console.log("Other disconnected.")
           closeDialog({'result': 'disconnected'})
           self.stateIdle();
@@ -146,40 +150,40 @@ export default {
   },
   emits: ['sendMessage', 'start-game', 'popup'],
   methods: {
-    popup(text){
+    popup(text) {
       this.$emit('popup', text);
     },
-    stateIdle(){
+    stateIdle() {
       this.state = STATE.IDLE;
       current_user.other_nickname = null;
       SocketioService.setState(this.state, current_user.nickname);
     },
-    stateChallenging(whom){
+    stateChallenging(whom) {
       this.state = STATE.CHALLENGING;
       current_user.other_nickname = whom;
       SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
     },
-    stateChallenged(by_whom){
+    stateChallenged(by_whom) {
       this.state = STATE.CHALLENGED;
       current_user.other_nickname = by_whom;
       SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
     },
-    stateInGame(with_whom){
+    stateInGame(with_whom) {
       this.state = STATE.IN_GAME;
       current_user.other_nickname = with_whom;
       SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
       this.$emit('start-game');
     },
 
-    async challenging(nickname){
+    async challenging(nickname) {
       let message = {'type': 'challenge', 'recipient': nickname, 'state': 'open', 'action': 'manual'}
       SocketioService.sendMessage(message);
 
       this.stateChallenging(nickname);
       let res = await openDialog(ChallengingDialog, {challenged: nickname});
-      if(res.hasOwnProperty('result')){
+      if (res.hasOwnProperty('result')) {
         console.log(res);
-        if(res.result === 'accepted'){
+        if (res.result === 'accepted') {
           this.stateInGame(nickname);
           return;
         }
@@ -201,17 +205,18 @@ export default {
 
 <style scoped>
 @media (min-width: 600px) {
-  #header{
+  #header {
     width: 600px;
   }
 }
+
 #header {
   display: block;
   border-bottom: 2px solid #767676;
   margin-bottom: 40px;
 }
 
-#header>h3 {
+#header > h3 {
   width: 100%;
 }
 </style>
