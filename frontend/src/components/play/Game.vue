@@ -1,6 +1,6 @@
 <template>
   <h1>This is the game. You're {{ current_user.nickname }} and facing {{ current_user.other_nickname }}</h1>
-  <button @click="$emit('end-game')">Quit</button>
+  <button @click="quitGame">Quit</button>
 </template>
 
 <script>
@@ -23,6 +23,23 @@ export default {
             return;
           }
 
+          switch (msg.type){
+            case 'game_state':{
+              if(!msg.hasOwnProperty('value')){
+                console.log("Received corrupted message", msg);
+                return;
+              }
+
+              switch (msg.value){
+                case 'quit': {
+                  self.$emit('end-game', current_user.other_nickname + " has quit the game.");
+                  return;
+                }
+              }
+              break;
+            }
+          }
+
           // TODO game logic
         },
         function (err){
@@ -39,7 +56,13 @@ export default {
       CALLBACK
     }
   },
-  emits: ['end-game'],
+  emits: ['end-game', 'popup'],
+  methods: {
+    quitGame(){
+      SocketioService.sendMessage({'type': 'game_state', 'value': 'quit', 'recipient': current_user.other_nickname})
+      this.$emit('end-game');
+    }
+  },
   mounted() {
     console.log("Mounting game...");
     SocketioService.registerHandlers(this.CALLBACK);

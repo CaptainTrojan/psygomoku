@@ -148,7 +148,7 @@ export default {
       CALLBACK
     }
   },
-  emits: ['sendMessage', 'start-game', 'popup'],
+  emits: ['start-game', 'popup'],
   methods: {
     popup(text) {
       this.$emit('popup', text);
