@@ -1,6 +1,6 @@
 <template>
   <div id="header">
-    <h3>Your name is {{nickname}}. State: {{state}}</h3>
+    <h3>Your name is {{current_user.nickname}}. State: {{state}}</h3>
   </div>
   <div id="player_list">
     <PlayerItem v-for="player in Object.values(players)"
@@ -17,6 +17,7 @@ import {SocketioService, LobbyCallback} from "@/services/socketio.service";
 import {closeDialog, openDialog} from "vue3-promise-dialog";
 import ChallengingDialog from "@/components/play/ChallengingDialog.vue";
 import ChallengedDialog from "@/components/play/ChallengedDialog.vue";
+import {current_user} from "@/store";
 
 const STATE = {
   IDLE: 'idle', CHALLENGING: 'challenging someone', CHALLENGED: 'being challenged', IN_GAME: 'in game'
@@ -27,8 +28,7 @@ export default {
   components: {PlayerItem},
   data() {
     return {
-      nickname: "<unknown>",
-      other_nickname: null,
+      current_user,
       players: {},
       state: STATE.IDLE,
       popup_showing: false,
@@ -41,23 +41,23 @@ export default {
     },
     stateIdle(){
       this.state = STATE.IDLE;
-      this.other_nickname = null;
-      SocketioService.setState(this.state, this.nickname);
+      current_user.other_nickname = null;
+      SocketioService.setState(this.state, current_user.nickname);
     },
     stateChallenging(whom){
       this.state = STATE.CHALLENGING;
-      this.other_nickname = whom;
-      SocketioService.setState(this.state, this.nickname, this.other_nickname);
+      current_user.other_nickname = whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
     },
     stateChallenged(by_whom){
       this.state = STATE.CHALLENGED;
-      this.other_nickname = by_whom;
-      SocketioService.setState(this.state, this.nickname, this.other_nickname);
+      current_user.other_nickname = by_whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
     },
     stateInGame(with_whom){
       this.state = STATE.IN_GAME;
-      this.other_nickname = with_whom;
-      SocketioService.setState(this.state, this.nickname, this.other_nickname);
+      current_user.other_nickname = with_whom;
+      SocketioService.setState(this.state, current_user.nickname, current_user.other_nickname);
       this.$emit('start-game');
     },
 
@@ -85,7 +85,7 @@ export default {
     SocketioService.registerLobbyHandlers(
       new LobbyCallback(
         async function (msg){
-          console.log("<" + self.nickname + "> MESSAGE INCOMING: ", msg);
+          console.log("<" + current_user.nickname + "> MESSAGE INCOMING: ", msg);
 
           if(!msg.hasOwnProperty('type')
               || !msg.hasOwnProperty('sender')
@@ -132,7 +132,7 @@ export default {
               break;
             }
             case 'accept': {
-              if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
+              if(self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender){
                 closeDialog({'result': 'accepted'})
                 self.stateIdle();
               }else{
@@ -144,7 +144,7 @@ export default {
               break;
             }
             case 'decline': {
-              if(self.state === STATE.CHALLENGING && self.other_nickname === msg.sender){
+              if(self.state === STATE.CHALLENGING && current_user.other_nickname === msg.sender){
                 closeDialog({'result': 'declined'})
                 self.popup(`${msg.sender} has declined your challenge request.`);
                 self.stateIdle();
@@ -154,7 +154,7 @@ export default {
               break;
             }
             case 'close': {
-              if(self.other_nickname === msg.sender &&
+              if(current_user.other_nickname === msg.sender &&
                   (self.state === STATE.CHALLENGED || self.state === STATE.CHALLENGING)){
                 closeDialog({'result': 'closed'})
                 self.stateIdle();
@@ -170,13 +170,13 @@ export default {
         },
         function (nickname){
           console.log("Received nickname", nickname);
-          self.nickname = nickname;
+          current_user.nickname = nickname;
           delete self.players[nickname];
         },
         function(users){
           console.log("Received users change", users);
           self.players = users;
-          delete self.players[self.nickname];
+          delete self.players[current_user.nickname];
         },
         function (user){
           console.log("Received user state update", user);
