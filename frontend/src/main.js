@@ -9,17 +9,17 @@ import {PromiseDialog} from "vue3-promise-dialog";
 
 
 const routes = [
-    { path: '/', component: IntroPage},
-    { path: '/tutorial', component: TutorialPage},
-    { path: '/play', component: PlayPage},
+  {path: '/', component: IntroPage},
+  {path: '/tutorial', component: TutorialPage},
+  {path: '/play', component: PlayPage},
 ]
 
 const router = createRouter({
-    history: createWebHashHistory(),
-    routes
+  history: createWebHashHistory(),
+  routes
 })
 
 createApp(App)
-    .use(router)
-    .use(PromiseDialog)
-    .mount('#app')
+  .use(router)
+  .use(PromiseDialog)
+  .mount('#app')

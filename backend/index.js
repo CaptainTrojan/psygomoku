@@ -56,7 +56,9 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('user disconnected')
-    if (socket.user_object.state.other_nickname !== null) {
+    if (socket.user_object.state.other_nickname !== null &&
+      all_connections[socket.user_object.state.other_nickname] !== undefined) {
+
       all_connections[socket.user_object.state.other_nickname].emit("other_disconnected");
     }
     delete all_connections[socket.user_object.nickname];

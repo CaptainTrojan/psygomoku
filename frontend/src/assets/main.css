@@ -15,6 +15,20 @@ a,
   transition: 0.4s;
 }
 
+.red {
+  text-decoration: none;
+  color: hsl(351, 82%, 55%);
+  transition: 0.4s;
+}
+
+.game_white {
+  color: #d38848
+}
+
+.game_black {
+  color: #6464fa
+}
+
 @media (hover: hover) {
   a:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
