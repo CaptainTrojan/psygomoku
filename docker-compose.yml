@@ -2,7 +2,7 @@ version: '3.7'
 
 networks:
     web:
-        driver: bridge
+#        driver: bridge
 
 services:
   frontend:
@@ -11,12 +11,12 @@ services:
       dockerfile: frontend/Dockerfile
     networks:
       - web
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    networks:
-      - web
+#  backend:
+#    build:
+#      context: .
+#      dockerfile: backend/Dockerfile
+#    networks:
+#      - web
   nginx:
     build:
       context: .
