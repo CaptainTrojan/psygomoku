@@ -1,5 +1,8 @@
 <template>
-  <button @click="quitGame">Quit</button>
+  <button @click="quitGame" class="button-6" role="button">Quit</button>
+  <button @click="offerRematch" class="button-6" role="button">Rematch
+    <img v-if="user_wants_rematch || enemy_wants_rematch" id="loading" src="public/loading.gif" alt="this slowpoke moves" width="20" />
+  </button>
   <div>
     <span :class="{game_white: current_user.is_white, game_black: ! current_user.is_white}">You: {{ current_user.nickname }}</span>
     <span :class="{game_white: ! current_user.is_white, game_black: current_user.is_white}" style="float: right;">Enemy: {{ current_user.other_nickname }}</span>
@@ -53,6 +56,25 @@ export default {
             }
             break;
           }
+          case 'rematch': {
+            if(!msg.hasOwnProperty("value")){
+              console.log("Received corrupted message", msg);
+              return;
+            }
+
+            self.enemy_wants_rematch = msg.value;
+            if(self.enemy_wants_rematch){
+              if(self.user_wants_rematch){
+                self.handleRematch();
+              }else{
+                self.setStatus(self.current_user.other_nickname + " has challenged you to a rematch!");
+              }
+            }else{
+              self.setStatus(self.current_user.other_nickname + " has cancelled the rematch challenge.");
+            }
+
+            break;
+          }
           default: {
             self.$refs.psygomoku_game.handleMessage(msg);
             break;
@@ -69,8 +91,9 @@ export default {
     );
 
     return {
-      current_user,
-      CALLBACK
+      CALLBACK,
+      user_wants_rematch: false,
+      enemy_wants_rematch: false,
     }
   },
   emits: ['end-game', 'popup'],
@@ -78,6 +101,25 @@ export default {
     quitGame(){
       SocketioService.sendMessage({'type': 'game_state', 'value': 'quit', 'recipient': current_user.other_nickname})
       this.$emit('end-game');
+    },
+    offerRematch(){
+      if(this.enemy_wants_rematch){
+        this.sendMessage({'type': 'rematch', 'value': true, 'recipient': current_user.other_nickname})
+        this.handleRematch();
+      }else{
+        this.user_wants_rematch = ! this.user_wants_rematch;
+        if(this.user_wants_rematch){
+          this.setStatus("You have challenged " + this.current_user.other_nickname + " to a rematch!");
+        }else{
+          this.setStatus("You have cancelled the rematch challenge.");
+        }
+        this.sendMessage({'type': 'rematch', 'value': this.user_wants_rematch, 'recipient': current_user.other_nickname})
+      }
+    },
+    handleRematch() {
+      this.user_wants_rematch = false;
+      this.enemy_wants_rematch = false;
+      this.$refs.psygomoku_game.restart();
     },
     sendMessage(message){
       SocketioService.sendMessage(message);
@@ -94,5 +136,56 @@ export default {
 </script>
 
 <style scoped>
+#loading {
+  margin: 0 0 0 20px;
+  padding: 0;
+}
 
+/* CSS */
+.button-6 {
+  align-items: center;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: .25rem;
+  box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+  box-sizing: border-box;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.25;
+  margin: 0 20px 20px 0;
+  min-height: 3rem;
+  padding: calc(.875rem - 1px) calc(1.5rem - 1px);
+  position: relative;
+  text-decoration: none;
+  transition: all 250ms;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: baseline;
+  width: auto;
+}
+
+.button-6:hover,
+.button-6:focus {
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.button-6:hover {
+  transform: translateY(-1px);
+}
+
+.button-6:active {
+  background-color: #F0F0F1;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;
+  color: rgba(0, 0, 0, 0.65);
+  transform: translateY(0);
+}
 </style>

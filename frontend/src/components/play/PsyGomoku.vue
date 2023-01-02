@@ -1,10 +1,12 @@
 <template>
-  <canvas @click="canvasClicked" width="600" height="600" ref="canvas"></canvas>
+  <div id="game_wrapper">
+    <canvas @click="canvasClicked" width="600" height="600" ref="canvas"></canvas>
+  </div>
 </template>
 
 <script>
-import {current_user} from "@/store";
 import CryptoJS from 'crypto-js';
+import {current_user} from "@/store";
 
 const STATE = {
   MARKING: 0,
@@ -39,7 +41,11 @@ function generateId() {
 
 export default {
   name: "PsyGomoku",
-
+  computed: {
+    current_user() {
+      return current_user
+    }
+  },
   data() {
     const NUM_BLOCKS = 15;
     const BLOCK_SIZE = 40;
@@ -47,7 +53,6 @@ export default {
 
     return {
       CryptoJS,
-      current_user,
       turn: COLOR.WHITE,
       state: STATE.WAITING,
       whitePieces: new Set(),
@@ -61,7 +66,9 @@ export default {
       COLOR_BACKGROUND: '#ffffff',
       COLOR_GRID: '#cecece',
       COLOR_WHITE: '#d38848',
+      COLOR_WHITE_SOFT: 'rgba(211,136,72,0.37)',
       COLOR_BLACK: '#6464fa',
+      COLOR_BLACK_SOFT: 'rgba(100,100,250,0.37)',
       COLOR_QUESTION: '#d2ca92',
       COLOR_MARKED: '#e35050',
       FONT_SYMBOL: "bold 23px monospace",
@@ -69,7 +76,9 @@ export default {
       key: undefined,
       mark: {'row': 0, 'column': 0},
       mark_showing: false,
-      encryptedMark: undefined
+      encryptedMark: undefined,
+      white_last_move: {'row': 0, 'column': 0},
+      black_last_move: {'row': 0, 'column': 0},
     }
   },
   methods: {
@@ -197,11 +206,22 @@ export default {
       let last_player = this.turn;
       if (output.row === label.row && output.column === label.column) { // guessed right
         to_check = this.turn === COLOR.WHITE ? this.blackPieces : this.whitePieces;
+        this.white_last_move = label;
+        this.black_last_move = label;
       } else { // guessed wrong
-        to_check = this.turn === COLOR.WHITE ? this.whitePieces : this.blackPieces;
+        if(this.turn === COLOR.WHITE){
+          this.white_last_move = label;
+          this.black_last_move = output;
+          to_check = this.whitePieces;
+        }else{
+          this.white_last_move = output;
+          this.black_last_move = label;
+          to_check = this.blackPieces;
+        }
         this.turn = 1 - this.turn;
       }
       to_check.add(this.moveObjectToId(label));
+
 
       this.encryptedMark = undefined;
       this.mark_showing = false;
@@ -304,11 +324,9 @@ export default {
       this.blackPieces.clear();
       this.current_user.is_white = !this.current_user.is_white;
       this.turn = COLOR.WHITE;
-      this.state = this.current_user.is_white ? STATE.MARKING : STATE.WAITING;
+      this.state = this.current_user.is_white ? STATE.MARKING : STATE.WAITING
+      this.renderAll();
       this.updateStatus();
-
-      // this.whitePieces.push([1, 1], [2, 2]);
-      // this.blackPieces.push([3, 1], [4, 2]);
     },
     updateStatus() {
       let status = "<unk>";
@@ -344,6 +362,11 @@ export default {
       this.ctx.clearRect(0, 0, this.SIZE_IN_PIXELS, this.SIZE_IN_PIXELS);
 
       this.drawGrid();
+
+      if(this.whitePieces.size + this.blackPieces.size > 0){ // at least one move
+        this.drawWhiteLastMove(this.white_last_move.row, this.white_last_move.column);
+        this.drawBlackLastMove(this.black_last_move.row, this.black_last_move.column);
+      }
       this.whitePieces.forEach(id => this.drawWhitePieceFromId(id));
       this.blackPieces.forEach(id => this.drawBlackPieceFromId(id));
       if (this.question_showing) {
@@ -394,6 +417,28 @@ export default {
       this.ctx.fillStyle = this.COLOR_MARKED;
       this.ctx.font = this.FONT_SYMBOL;
       this.ctx.fillText("!", (row + 0.32) * this.BLOCK_SIZE, (column + 0.7) * this.BLOCK_SIZE)
+    },
+    drawBlackLastMove(row, column){
+      this.ctx.beginPath();
+      this.ctx.rect(
+          (row + 1)* this.BLOCK_SIZE - this.SQUARE_MARGIN * 2 - this.GRID_THICKNESS,
+          column * this.BLOCK_SIZE,
+          this.SQUARE_MARGIN * 2,
+          this.SQUARE_MARGIN * 2,
+      )
+      this.ctx.fillStyle = this.COLOR_BLACK_SOFT;
+      this.ctx.fill();
+    },
+    drawWhiteLastMove(row, column){
+      this.ctx.beginPath();
+      this.ctx.rect(
+          row * this.BLOCK_SIZE,
+          column * this.BLOCK_SIZE,
+          this.SQUARE_MARGIN * 2,
+          this.SQUARE_MARGIN * 2,
+      )
+      this.ctx.fillStyle = this.COLOR_WHITE_SOFT;
+      this.ctx.fill();
     },
     drawClearSquare(row, column) {
       this.ctx.beginPath();
@@ -456,5 +501,11 @@ export default {
 </script>
 
 <style scoped>
+  #game_wrapper {
 
+  }
+  canvas {
+    margin: 0 auto;
+    display: block;
+  }
 </style>
