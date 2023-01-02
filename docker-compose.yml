@@ -1,20 +1,31 @@
-version: '3'
+version: '3.7'
+
+networks:
+    web:
+
+
 services:
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    networks:
+      - web
     ports:
       - "30301:30301"
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    networks:
+      - web
     ports:
       - "30302:30302"
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+    networks:
+      - web
     ports:
       - "80:80"
