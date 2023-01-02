@@ -5,10 +5,10 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-#  backend:
-#    build:
-#      context: .
-#      dockerfile: backend/Dockerfile
+  psg-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
   nginx:
     build:
       context: .
