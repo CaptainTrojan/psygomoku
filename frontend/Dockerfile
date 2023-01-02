@@ -23,4 +23,4 @@ RUN npm run build
 EXPOSE 8080
 
 # Set the default command to run when the container starts
-CMD ["npm", "run", "serve"]
+CMD ["npm", "run", "dev"]
