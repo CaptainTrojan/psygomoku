@@ -1,7 +1,8 @@
 import {Server} from "socket.io";
 import {generateUsername} from "unique-username-generator";
 
-const io = new Server(30302, {
+const io = new Server( {
+  path: '/server-socket/',
   cors: {
     origin: "*", // TODO!
   }
