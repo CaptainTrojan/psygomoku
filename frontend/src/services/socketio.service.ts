@@ -13,7 +13,7 @@ class SocketioService {
         let self = this;
 
         // @ts-ignore
-        this.socket = io(import.meta.env.VITE_SOCKET_ENDPOINT);
+        this.socket = io();
 
         this.socket.on("error", function (){
             console.log("CLIENT: ERROR :)");
