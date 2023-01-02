@@ -2,7 +2,7 @@ version: '3.7'
 
 networks:
     web:
-
+        driver: bridge
 
 services:
   frontend:
@@ -11,16 +11,12 @@ services:
       dockerfile: frontend/Dockerfile
     networks:
       - web
-    ports:
-      - "30301:30301"
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     networks:
       - web
-    ports:
-      - "30302:30302"
   nginx:
     build:
       context: .

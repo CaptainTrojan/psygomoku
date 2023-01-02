@@ -10,5 +10,7 @@ RUN npm install
 # Copy the rest of the application code
 COPY backend/ .
 
+EXPOSE 30302
+
 # Set the default command to run when the container starts
 CMD ["node", "index.js"]

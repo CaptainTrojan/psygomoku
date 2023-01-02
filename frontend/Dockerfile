@@ -19,5 +19,7 @@ RUN ls -al
 # Build the Vue.js application
 RUN npm run build
 
+EXPOSE 30301
+
 # Set the default command to run when the container starts
 CMD ["npm", "run", "dev"]
