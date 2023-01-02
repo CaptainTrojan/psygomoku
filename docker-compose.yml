@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    depends_on:
+      - nginx
   nginx:
     build:
       context: .
