@@ -19,4 +19,4 @@ jobs:
 
     - name: Build & Deploy
       run: |
-        docker-compose -d up --build
+        docker compose -d up --build
