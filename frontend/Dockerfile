@@ -2,7 +2,7 @@ FROM node:14-alpine
 
 # Create a working directory and copy the package.json and package-lock.json files
 WORKDIR /app
-COPY package*.json ./
+COPY frontend/package*.json ./
 
 # show files
 RUN ls -al
@@ -11,7 +11,7 @@ RUN ls -al
 RUN npm install
 
 # Copy the rest of the application code
-COPY . .
+COPY frontend/ .
 
 # show files
 RUN ls -al
