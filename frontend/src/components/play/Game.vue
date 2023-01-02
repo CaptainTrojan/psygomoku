@@ -1,7 +1,7 @@
 <template>
   <button @click="quitGame" class="button-6" role="button">Quit</button>
   <button :disabled="rematch_disabled" @click="offerRematch" class="button-6" role="button">Rematch
-    <img v-if="user_wants_rematch || enemy_wants_rematch" id="loading" src="public/loading.gif" alt="this slowpoke moves" width="20" />
+    <img v-if="user_wants_rematch || enemy_wants_rematch" id="loading" src="/loading.gif" alt="this slowpoke moves" width="20" />
   </button>
   <div>
     <span :class="{game_white: current_user.is_white, game_black: ! current_user.is_white}">You: {{ current_user.nickname }}</span>
