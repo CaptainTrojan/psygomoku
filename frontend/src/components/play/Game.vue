@@ -1,13 +1,13 @@
 <template>
   <button @click="quitGame" class="button-6" role="button">Quit</button>
-  <button @click="offerRematch" class="button-6" role="button">Rematch
+  <button :disabled="rematch_disabled" @click="offerRematch" class="button-6" role="button">Rematch
     <img v-if="user_wants_rematch || enemy_wants_rematch" id="loading" src="public/loading.gif" alt="this slowpoke moves" width="20" />
   </button>
   <div>
     <span :class="{game_white: current_user.is_white, game_black: ! current_user.is_white}">You: {{ current_user.nickname }}</span>
     <span :class="{game_white: ! current_user.is_white, game_black: current_user.is_white}" style="float: right;">Enemy: {{ current_user.other_nickname }}</span>
   </div>
-  <PsyGomoku @set-status="setStatus" @send-message="sendMessage" ref="psygomoku_game"/>
+  <PsyGomoku @allow-rematch="allowRematch" @set-status="setStatus" @send-message="sendMessage" ref="psygomoku_game"/>
   <div>
     <span id="status_bar" ref="status_bar">Game loaded.</span>
   </div>
@@ -94,6 +94,7 @@ export default {
       CALLBACK,
       user_wants_rematch: false,
       enemy_wants_rematch: false,
+      rematch_disabled: true
     }
   },
   emits: ['end-game', 'popup'],
@@ -120,12 +121,16 @@ export default {
       this.user_wants_rematch = false;
       this.enemy_wants_rematch = false;
       this.$refs.psygomoku_game.restart();
+      this.rematch_disabled = true;
     },
     sendMessage(message){
       SocketioService.sendMessage(message);
     },
     setStatus(message){
       this.$refs.status_bar.innerText = message;
+    },
+    allowRematch(){
+      this.rematch_disabled = false;
     }
   },
   mounted() {

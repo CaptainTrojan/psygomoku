@@ -81,6 +81,7 @@ export default {
       black_last_move: {'row': 0, 'column': 0},
     }
   },
+  emits: ["send-message", "set-status", "allow-rematch"],
   methods: {
     isMyTurn() {
       // noinspection EqualityComparisonWithCoercionJS,JSIncompatibleTypesComparison
@@ -237,9 +238,11 @@ export default {
         // noinspection EqualityComparisonWithCoercionJS,JSIncompatibleTypesComparison
         this.state = !this.current_user.is_white == last_player ? STATE.LOST : STATE.WON;
         this.updateStatus();
+        this.$emit('allow-rematch');
       }else if(this.checkDraw()){
         this.state = STATE.DREW;
         this.updateStatus();
+        this.$emit('allow-rematch');
       }else{
         if (this.isMyTurn()) {
           this.state = STATE.MARKING;
