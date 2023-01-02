@@ -1,6 +1,6 @@
 <template>
   <div id="header">
-    <h3><CustomIcon class="table-icon" source="src/assets/user.svg"/><i>{{ current_user.nickname }}</i> [{{state}}]</h3>
+    <h3><CustomIcon class="table-icon" source="/src/assets/user.svg"/><i>{{ current_user.nickname }}</i> [{{state}}]</h3>
     <h3>Number of other connected players: {{Object.keys(players).length}}</h3>
   </div>
   <table id="player_list">

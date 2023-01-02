@@ -1,6 +1,6 @@
 <template>
   <tr class="player-item">
-    <td class="username-column"><CustomIcon class="table-icon" source="src/assets/user.svg"/><span>{{nickname}}</span></td>
+    <td class="username-column"><CustomIcon class="table-icon" source="/src/assets/user.svg"/><span>{{nickname}}</span></td>
     <td class="state-column"><CustomIcon class="table-icon" :source="stateImg"/></td>
     <td class="challenge-column"><button class="button-6" @click="emitChallenge(nickname)">challenge</button></td>
   </tr>
@@ -19,13 +19,13 @@ export default {
    stateImg() {
       switch (this.state.state){
         case 'idle':
-          return "src/assets/idle.svg";
+          return "/src/assets/idle.svg";
         case 'challenging someone':
-          return "src/assets/challenging.svg";
+          return "/src/assets/challenging.svg";
         case 'being challenged':
-          return "src/assets/challenged.svg";
+          return "/src/assets/challenged.svg";
         case 'in game':
-          return "src/assets/in_game.svg";
+          return "/src/assets/in_game.svg";
       }
    }
   },

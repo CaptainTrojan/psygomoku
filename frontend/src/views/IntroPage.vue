@@ -6,7 +6,7 @@ import TheWelcome from '../components/intro/TheWelcome.vue'
 <template>
   <div id="intro_wrapper">
     <header>
-      <img alt="psygomoku logo" class="logo" src="../assets/skull.svg" width="200" height="200" />
+      <img alt="psygomoku logo" class="logo" src="/src/assets/skull.svg" width="200" height="200" />
 
       <div class="wrapper">
         <HelloWorld />

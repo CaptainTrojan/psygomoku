@@ -1,8 +1,8 @@
 <template>
   <div id="popup" ref="popup_div" v-show="popup_showing"></div>
 
-  <CustomIcon class="connection" v-if="connected" source="src/assets/connected.svg"/>
-  <CustomIcon class="connection" v-if="!connected" source="src/assets/disconnected.svg"/>
+  <CustomIcon class="connection" v-if="connected" source="/src/assets/connected.svg"/>
+  <CustomIcon class="connection" v-if="!connected" source="/src/assets/disconnected.svg"/>
 
   <Lobby @popup="popup" @start-game="toggle_game" v-if="in_lobby"></Lobby>
   <Game @end-game="toggle_game" v-if="!in_lobby"></Game>
