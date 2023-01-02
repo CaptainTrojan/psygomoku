@@ -4,6 +4,9 @@ FROM node:14-alpine
 WORKDIR /app
 COPY package*.json ./
 
+# show files
+RUN ls -al
+
 # Install dependencies
 RUN npm install
 
@@ -12,7 +15,6 @@ COPY . .
 
 # show files
 RUN ls -al
-RUN pwd
 
 # Build the Vue.js application
 RUN npm run build
