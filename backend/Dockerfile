@@ -10,8 +10,5 @@ RUN npm install
 # Copy the rest of the application code
 COPY backend/ .
 
-# Expose the default port for the socket.io server
-EXPOSE 3000
-
 # Set the default command to run when the container starts
 CMD ["node", "index.js"]
