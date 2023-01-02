@@ -1,29 +1,19 @@
-version: '3.7'
-
-networks:
-    web:
-#        driver: bridge
+version: '3'
 
 services:
-  frontend:
+  psg-frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    networks:
-      - web
 #  backend:
 #    build:
 #      context: .
 #      dockerfile: backend/Dockerfile
-#    networks:
-#      - web
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
-    networks:
-      - web
     ports:
       - "80:80"
     depends_on:
-      - frontend
+      - psg-frontend
