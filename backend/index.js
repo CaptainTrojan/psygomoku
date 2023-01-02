@@ -1,14 +1,14 @@
 import {Server} from "socket.io";
 import {generateUsername} from "unique-username-generator";
 
-const io = new Server(3000, {
+const io = new Server(30302, {
   cors: {
     origin: "*", // TODO!
   }
 });
 
 const all_connections = {};
-console.log("Listening on port 3000.")
+console.log("Listening on port 30302.")
 
 function notify_users_change() {
   let users = {};
