@@ -19,8 +19,5 @@ RUN ls -al
 # Build the Vue.js application
 RUN npm run build
 
-# Expose the default port for the Vue.js development server
-EXPOSE 8080
-
 # Set the default command to run when the container starts
 CMD ["npm", "run", "dev"]
