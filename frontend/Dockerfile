@@ -10,6 +10,10 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# show files
+RUN ls -al
+RUN pwd
+
 # Build the Vue.js application
 RUN npm run build
 
