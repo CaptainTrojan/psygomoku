@@ -13,7 +13,7 @@ class SocketioService {
         let self = this;
 
         // @ts-ignore
-        this.socket = io("http://130.61.248.208/");
+        this.socket = io();
 
         this.socket.on("error", function (){
             console.log("CLIENT: ERROR :)");
