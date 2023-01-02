@@ -10,20 +10,18 @@ import ContactIcon from '../icons/IconSupport.vue'
     <template #icon>
       <TutorialIcon />
     </template>
-    <template #heading>Tutorial</template>
+    <template #heading><router-link to="/tutorial">Tutorial</router-link></template>
 
-    Check out the
-    <router-link to="/tutorial">tutorial</router-link>
-    to learn how to play the game.
+    Check out the tutorial to learn how to play the game.
   </WelcomeItem>
 
   <WelcomeItem>
     <template #icon>
       <PlayIcon />
     </template>
-    <template #heading>Play</template>
+    <template #heading><router-link to="/play">Play</router-link></template>
 
-    If you understand the rules, see if you can <router-link to="/play">find</router-link> an opponent.
+    If you understand the rules, see if you can find an opponent.
   </WelcomeItem>
 
   <WelcomeItem>
@@ -32,6 +30,11 @@ import ContactIcon from '../icons/IconSupport.vue'
     </template>
     <template #heading>Contact</template>
 
-    I made this. This is me:
+    Check out the repo:
+    <br>
+    <a target="_blank" href="https://github.com/CaptainTrojan/psygomoku">https://github.com/CaptainTrojan/psygomoku</a>
+    <br>
+
+    If you find any bugs, please report them <a target="_blank" href="https://github.com/CaptainTrojan/psygomoku/issues/new?assignees=&labels=&template=bug_report.md&title=">here.</a>
   </WelcomeItem>
 </template>

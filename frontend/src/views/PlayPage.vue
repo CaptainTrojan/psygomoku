@@ -1,7 +1,8 @@
 <template>
   <div id="popup" ref="popup_div" v-show="popup_showing"></div>
 
-  <h1>Connected: {{ connected }}</h1><br/>
+  <CustomIcon class="connection" v-if="connected" source="src/assets/connected.svg"/>
+  <CustomIcon class="connection" v-if="!connected" source="src/assets/disconnected.svg"/>
 
   <Lobby @popup="popup" @start-game="toggle_game" v-if="in_lobby"></Lobby>
   <Game @end-game="toggle_game" v-if="!in_lobby"></Game>
@@ -13,11 +14,12 @@ import {SocketioService} from "@/services/socketio.service";
 import {ConnectionCallback} from "@/services/socketio.service";
 import Lobby from "@/components/play/Lobby.vue"
 import Game from "@/components/play/Game.vue"
+import CustomIcon from "@/components/icons/CustomIcon.vue";
 
 export default {
   name: "PlayPage",
   components: {
-    Lobby, Game
+    CustomIcon, Lobby, Game
   },
   data(){
     let self = this;
@@ -81,5 +83,10 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+.connection{
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 50px;
 }
 </style>

@@ -1,14 +1,15 @@
 <template>
   <div id="header">
-    <h3>Your name is {{ current_user.nickname }}. State: {{ state }}</h3>
+    <h3><CustomIcon class="table-icon" source="src/assets/user.svg"/><i>{{ current_user.nickname }}</i> [{{state}}]</h3>
+    <h3>Number of other connected players: {{Object.keys(players).length}}</h3>
   </div>
-  <div id="player_list">
+  <table id="player_list">
     <PlayerItem v-for="player in Object.values(players)"
                 @challenging="challenging"
                 :nickname="player.nickname"
                 :state="player.state"
                 :id="player.nickname"></PlayerItem>
-  </div>
+  </table>
 </template>
 
 <script>
@@ -18,6 +19,7 @@ import {closeDialog, openDialog} from "vue3-promise-dialog";
 import ChallengingDialog from "@/components/play/ChallengingDialog.vue";
 import ChallengedDialog from "@/components/play/ChallengedDialog.vue";
 import {current_user} from "@/store";
+import CustomIcon from "@/components/icons/CustomIcon.vue";
 
 const STATE = {
   IDLE: 'idle', CHALLENGING: 'challenging someone', CHALLENGED: 'being challenged', IN_GAME: 'in game'
@@ -25,7 +27,7 @@ const STATE = {
 
 export default {
   name: "Lobby",
-  components: {PlayerItem},
+  components: {CustomIcon, PlayerItem},
   data() {
     let self = this;
     const CALLBACK = new LobbyCallback(
@@ -223,6 +225,16 @@ export default {
 }
 
 #header > h3 {
+  width: 100%;
+}
+
+.table-icon{
+  display: inline-block;
+  margin-right: 10px;
+  height: 25px;
+}
+
+table{
   width: 100%;
 }
 </style>
