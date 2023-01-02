@@ -1,5 +1,11 @@
 version: '3'
 services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "80:80"
   frontend:
     build:
       context: .
@@ -12,9 +18,3 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "30302:30302"
-  nginx:  # must be last
-    build:
-      context: .
-      dockerfile: nginx/Dockerfile
-    ports:
-      - "80:80"
