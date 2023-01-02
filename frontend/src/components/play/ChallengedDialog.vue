@@ -2,8 +2,8 @@
   <div class="dialog">
     <div class="center">
       <p>You have been challenged by user {{ challenger }} to a game!</p>
-      <button @click="acceptChallenge()" class="btn">Accept</button>
-      <button @click="declineChallenge()" class="btn">Decline</button>
+      <button @click="acceptChallenge()" class="button-6">Accept</button>
+      <button @click="declineChallenge()" class="button-6" style="float: right">Decline</button>
     </div>
   </div>
 </template>
@@ -11,6 +11,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import {closeDialog} from 'vue3-promise-dialog'
+import CustomIcon from "../icons/CustomIcon.vue";
 
 export default defineComponent({
   props: {
@@ -46,7 +47,7 @@ export default defineComponent({
   padding: 20px;
 }
 
-.btn {
-  margin: 10px;
+.button-6 {
+  margin: 10px 10px 0 0;
 }
 </style>

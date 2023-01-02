@@ -1,9 +1,10 @@
 <template>
   <div class="dialog">
     <div class="center">
+      <CustomIcon style="width: 30px" source="/loading.gif"/>
       <p>Challenging user <i>{{challenged}}</i>&nbsp; to a game.</p>
       <p>Waiting for response...</p>
-      <button @click="cancelChallenge()" class="btn">Cancel</button>
+      <button @click="cancelChallenge()" class="button-6">Cancel</button>
     </div>
   </div>
 </template>
@@ -11,8 +12,10 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import {closeDialog} from 'vue3-promise-dialog'
+import CustomIcon from "../icons/CustomIcon.vue";
 
 export default defineComponent({
+  components: {CustomIcon},
   props: {
     challenged: String
   },
@@ -41,9 +44,5 @@ export default defineComponent({
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
-}
-
-.btn {
-  margin: 10px;
 }
 </style>

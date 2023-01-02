@@ -63,7 +63,7 @@ a,
   font-weight: 600;
   justify-content: center;
   line-height: 1.25;
-  margin: 0 20px 20px 0;
+  margin: 0;
   min-height: 3rem;
   padding: calc(.875rem - 1px) calc(1.5rem - 1px);
   position: relative;
@@ -93,4 +93,8 @@ a,
   box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;
   color: rgba(0, 0, 0, 0.65);
   transform: translateY(0);
+}
+
+.button-6:disabled {
+  color: gray;
 }

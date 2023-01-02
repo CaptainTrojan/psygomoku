@@ -4,8 +4,8 @@
     <img v-if="user_wants_rematch || enemy_wants_rematch" id="loading" src="/loading.gif" alt="this slowpoke moves" width="20" />
   </button>
   <div>
-    <span :class="{game_white: current_user.is_white, game_black: ! current_user.is_white}">You: {{ current_user.nickname }}</span>
-    <span :class="{game_white: ! current_user.is_white, game_black: current_user.is_white}" style="float: right;">Enemy: {{ current_user.other_nickname }}</span>
+    <span :class="{game_white: current_user.is_white, game_black: ! current_user.is_white, name: true}">You: {{ current_user.nickname }}</span>
+    <span :class="{game_white: ! current_user.is_white, game_black: current_user.is_white, name: true}" style="float: right;">Enemy: {{ current_user.other_nickname }}</span>
   </div>
   <PsyGomoku @allow-rematch="allowRematch" @set-status="setStatus" @send-message="sendMessage" ref="psygomoku_game"/>
   <div>
@@ -144,6 +144,14 @@ export default {
 #loading {
   margin: 0 0 0 20px;
   padding: 0;
+}
+
+.button-6 {
+  margin: 0 10px 10px 0;
+}
+
+.name {
+  font-size: 21px;
 }
 
 /* CSS */
