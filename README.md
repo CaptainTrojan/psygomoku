@@ -1,5 +1,7 @@
 [![Build and Deploy](https://github.com/CaptainTrojan/psygomoku/actions/workflows/deploy.yml/badge.svg)](https://github.com/CaptainTrojan/psygomoku/actions/workflows/deploy.yml)
 
+The application is deployed at http://psygomoku.ddns.net 
+
 # What is psygomoku?
 
 Psygomoku has the same rules as the original [gomoku](https://en.wikipedia.org/wiki/Gomoku) game (tic-tac-toe on a 15x15 grid, 5-in-a-row wins). However, anytime you want to draw a symbol, you instead mark the square and your opponent gets a chance to guess that square. If they guess correctly, it is them that gets to draw their symbol on the marked square, not you, and you play again. If they don't guess correctly, you draw your symbol on the marked square and the turn switches.
