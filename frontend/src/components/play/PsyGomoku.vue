@@ -234,7 +234,7 @@ export default {
       if(win.exists){
         this.drawVictoryStroke(win.stroke);
         // noinspection EqualityComparisonWithCoercionJS,JSIncompatibleTypesComparison
-        this.state = this.current_user.is_white == this.turn ? STATE.LOST : STATE.WON;
+        this.state = this.current_user.is_white == this.turn ? STATE.WON : STATE.LOST;
         this.updateStatus();
         this.$emit('allow-rematch');
       }else if(this.checkDraw()){
