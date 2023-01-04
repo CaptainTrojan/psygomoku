@@ -204,7 +204,6 @@ export default {
     performMove(label, output) {
       console.log("Performing move... ", label, output, this.turn, this.current_user.is_white);
       let to_check;
-      let last_player = this.turn;
       if (output.row === label.row && output.column === label.column) { // guessed right
         to_check = this.turn === COLOR.WHITE ? this.blackPieces : this.whitePieces;
         this.white_last_move = label;
@@ -223,7 +222,6 @@ export default {
       }
       to_check.add(this.moveObjectToId(label));
 
-
       this.encryptedMark = undefined;
       this.mark_showing = false;
       this.question_showing = false;
@@ -236,7 +234,7 @@ export default {
       if(win.exists){
         this.drawVictoryStroke(win.stroke);
         // noinspection EqualityComparisonWithCoercionJS,JSIncompatibleTypesComparison
-        this.state = !this.current_user.is_white == last_player ? STATE.LOST : STATE.WON;
+        this.state = this.current_user.is_white == this.turn ? STATE.LOST : STATE.WON;
         this.updateStatus();
         this.$emit('allow-rematch');
       }else if(this.checkDraw()){
