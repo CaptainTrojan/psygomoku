@@ -2,7 +2,7 @@
   <tr class="player-item">
     <td class="username-column"><CustomIcon class="table-icon" source="/src/assets/user.svg"/><span>{{nickname}}</span></td>
     <td class="state-column"><CustomIcon class="table-icon" :source="stateImg"/></td>
-    <td class="challenge-column"><button class="button-6" @click="emitChallenge(nickname)" :disabled="state !== 'idle'">challenge</button></td>
+    <td class="challenge-column"><button class="button-6" @click="emitChallenge(nickname)" :disabled="state.state !== 'idle'">challenge</button></td>
   </tr>
 </template>
 
