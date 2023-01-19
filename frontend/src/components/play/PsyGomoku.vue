@@ -186,6 +186,8 @@ export default {
           })
           // waiting for guess
           console.log("Waiting for guess...");
+          this.state = STATE.WAITING;
+          this.updateStatus(); // update status only here, because after guess, status would be updated again in process
         }else{ // GUESSING
           this.$emit('send-message', {
             'type': 'move',
@@ -195,9 +197,8 @@ export default {
           })
           // waiting for verify
           console.log("Waiting for verify...");
+          this.state = STATE.WAITING;
         }
-        this.state = STATE.WAITING;
-        this.updateStatus();
       }
       this.renderAll();
     },
@@ -331,17 +332,21 @@ export default {
     },
     updateStatus() {
       let status = "<unk>";
+      let turn = 'none';
       switch (this.state){
         case STATE.WAITING: {
           status = this.current_user.other_nickname + " is thinking..."
+          turn = 'enemy';
           break;
         }
         case STATE.MARKING: {
           status = "Mark the square on which you'd like to draw your symbol."
+          turn = 'you';
           break;
         }
         case STATE.GUESSING: {
           status = "Try to guess the square marked by your enemy!"
+          turn = 'you';
           break;
         }
         case STATE.WON: {
@@ -357,7 +362,7 @@ export default {
           break;
         }
       }
-      this.$emit('set-status', status);
+      this.$emit('set-status', {status: status, turn: turn});
     },
     renderAll() {
       this.ctx.clearRect(0, 0, this.SIZE_IN_PIXELS, this.SIZE_IN_PIXELS);
@@ -503,7 +508,7 @@ export default {
 
 <style scoped>
   #game_wrapper {
-
+    display: inline-block;
   }
   canvas {
     margin: 0 auto;
