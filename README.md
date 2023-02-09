@@ -1,6 +1,6 @@
 [![Build and Deploy](https://github.com/CaptainTrojan/psygomoku/actions/workflows/deploy.yml/badge.svg)](https://github.com/CaptainTrojan/psygomoku/actions/workflows/deploy.yml)
 
-The application is deployed at http://psygomoku.ddns.net 
+The application is deployed at http://130.61.248.208/ (used to be psygomoku.ddns.net, but the domain has expired or smth)
 
 # What is psygomoku?
 
