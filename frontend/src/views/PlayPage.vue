@@ -1,10 +1,7 @@
 <template>
   <div id="popup" ref="popup_div" v-show="popup_showing"></div>
 
-  <CustomIcon class="connection" v-if="connected" source="/src/assets/connected.svg"/>
-  <CustomIcon class="connection" v-if="!connected" source="/src/assets/disconnected.svg"/>
-
-  <Lobby @popup="popup" @start-game="toggle_game" v-if="in_lobby"></Lobby>
+  <Lobby :connected="connected" @popup="popup" @start-game="toggle_game" v-if="in_lobby"></Lobby>
   <Game @end-game="toggle_game" v-if="!in_lobby"></Game>
 </template>
 
@@ -83,10 +80,5 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
-}
-.connection{
-  display: block;
-  margin: 0 auto;
-  padding-bottom: 50px;
 }
 </style>

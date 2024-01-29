@@ -1,5 +1,8 @@
 <template>
   <div id="header">
+  <CustomIcon class="connection" v-if="connected" source="/src/assets/connected.svg"/>
+  <CustomIcon class="connection" v-if="!connected" source="/src/assets/disconnected.svg"/>
+
     <h3><CustomIcon class="table-icon" source="/src/assets/user.svg"/><i>{{ current_user.nickname }}</i> [{{state}}]</h3>
     <h3>Number of other connected players: {{Object.keys(players).length}}</h3>
   </div>
@@ -26,6 +29,7 @@ const STATE = {
 }
 
 export default {
+  props: ['connected'],
   name: "Lobby",
   components: {CustomIcon, PlayerItem},
   data() {
@@ -212,11 +216,7 @@ export default {
 </script>
 
 <style scoped>
-@media (min-width: 600px) {
-  #header {
-    width: 600px;
-  }
-}
+
 
 #header {
   display: block;
@@ -236,5 +236,11 @@ export default {
 
 table{
   width: 100%;
+}
+
+.connection{
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 50px;
 }
 </style>
