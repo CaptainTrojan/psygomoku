@@ -29,7 +29,7 @@ export default {
       enemy_wants_rematch: false,
       rematch_disabled: true,
       turn_class: 'none',
-      notification: new Audio('https://proxy.notificationsounds.com/message-tones/juntos-607/download/file-sounds-1148-juntos.mp3'),
+      notification: new Audio('/notification.mp3'),
     }
   },
   emits: ['end-game', 'should-restart', 'send-message'],
@@ -160,10 +160,30 @@ export default {
 #game_status {
   display: inline-block;
   align-self: center;
-  max-width: 350px;
-  min-width: 350px;
-  background-color: #fafafa;
+  width: 350px;
+  background-color: #fafafaad;
   padding: 30px;
-  margin-right: 10px;
+  z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  #game_status {
+    max-width: 600px;
+    width: 100%;
+    padding: 10px;
+    position: fixed;
+    top: 0;
+  }
+
+  #turn_indicator_wrapper {
+    height: 80px;
+  }
+}
+
+@media (max-width: 640px) {
+  #game_status {
+    left: 0;
+    max-width: none;
+  }
 }
 </style>
