@@ -11,7 +11,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import {closeDialog} from 'vue3-promise-dialog'
-import CustomIcon from "../icons/CustomIcon.vue";
 
 export default defineComponent({
   props: {
@@ -45,6 +44,7 @@ export default defineComponent({
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
+  min-width: 270px;
 }
 
 .button-6 {

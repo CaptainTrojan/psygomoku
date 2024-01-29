@@ -44,5 +44,6 @@ export default defineComponent({
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
+  min-width: 270px;
 }
 </style>
