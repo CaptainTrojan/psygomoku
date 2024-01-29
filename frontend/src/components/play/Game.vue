@@ -1,5 +1,5 @@
 <template>
-  <div id="game_wrapper">
+  <div id="full_view">
     <GameStatus ref="game_status" @end-game="quitGame" @should-restart="handleRematch" @send-message="sendMessage"/>
     <PsyGomoku ref="psygomoku_game" @allow-rematch="allowRematch" @set-status="setStatus" @send-message="sendMessage"/>
   </div>
@@ -104,7 +104,28 @@ export default {
 </script>
 
 <style scoped>
-#game_wrapper {
+#full_view {
   display: flex;
+  flex-direction: row;
+  align-items: center; 
+  min-width: 620px;
+}
+
+#game_wrapper {
+  display: inline-block;
+  margin-left: 30px;
+}
+
+@media (max-width: 1024px) {
+  #full_view {
+    flex-direction: column;
+  }
+  #game_wrapper {
+    position: relative;
+    top: 270px;
+    width: 600px;
+    margin-left: 0;
+    /* margin-right: 25px; */
+  }
 }
 </style>
