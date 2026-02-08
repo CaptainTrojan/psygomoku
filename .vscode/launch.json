@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Web (Chrome)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+    },
+    {
+      "name": "Android (Auto-start Emulator)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Multi-Device (Web + Android)",
+      "configurations": [
+        "Web (Chrome)",
+        "Android (Auto-start Emulator)"
+      ],
+      "preLaunchTask": null,
+      "stopAll": true
+    }
+  ]
+}
