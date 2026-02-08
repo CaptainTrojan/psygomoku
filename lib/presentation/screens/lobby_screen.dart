@@ -148,9 +148,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.add_circle_outline, size: 36),
-                    const SizedBox(height: 8),
+                    const Icon(Icons.add_circle_outline, size: 32),
+                    const SizedBox(height: 4),
                     const Text(
                       'HOST GAME',
                       style: TextStyle(
@@ -205,9 +206,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.qr_code_scanner, size: 36),
-                    const SizedBox(height: 8),
+                    const Icon(Icons.qr_code_scanner, size: 32),
+                    const SizedBox(height: 4),
                     const Text(
                       'JOIN GAME',
                       style: TextStyle(

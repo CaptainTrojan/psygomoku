@@ -129,27 +129,31 @@ class _GameModeButton extends StatelessWidget {
           children: [
             Icon(icon, size: 32),
             const SizedBox(width: 16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
+            Flexible(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  subtitle,
+                  Text(
+                    subtitle,
                   style: TextStyle(
                     fontSize: 12,
                     color: color.withOpacity(0.7),
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
+          ),
           ],
         ),
       ),

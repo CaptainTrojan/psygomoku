@@ -49,8 +49,8 @@ void main() {
       await tester.tap(find.text('ONLINE P2P'));
       await tester.pumpAndSettle();
 
-      // Verify navigation occurred (lobby screen has "Host Game" title)
-      expect(find.text('Host Game'), findsOneWidget);
+      // Verify navigation occurred (lobby screen has "HOST GAME" text)
+      expect(find.text('HOST GAME'), findsOneWidget);
     });
 
     testWidgets('Nearby P2P button shows coming soon message', (WidgetTester tester) async {

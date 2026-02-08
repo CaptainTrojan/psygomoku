@@ -40,12 +40,12 @@ void main() {
     );
 
     blocTest<ConnectionBloc, ConnectionState>(
-      'emits DisconnectedState on disconnect',
+      'emits ConnectionIdleState on disconnect',
       build: () => connectionBloc,
       seed: () => const ConnectedState(),
       act: (bloc) => bloc.add(const DisconnectEvent()),
       expect: () => [
-        const DisconnectedState(),
+        const ConnectionIdleState(),
       ],
     );
 
