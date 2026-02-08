@@ -13,9 +13,9 @@
 **Core Philosophy:** Serverless, Trustless, Local-First.
 
 **Concept:**
-Psygomoku is a strategy board game based on Gomoku (5-in-a-row). It introduces a "Fog of War" mechanic derived from Mental Poker. Players do not place pieces openly; they **mark** a spot secretly. The opponent must **guess** the spot.
-*   If the guess is **correct**: The opponent wins the turn (Mark is blocked).
-*   If the guess is **wrong**: The mark becomes a permanent piece on the board.
+Psygomoku is a strategy board game based on Gomoku (5-in-a-row). It introduces a "Fog of War" mechanic derived from Mental Poker. Players do not place pieces openly; they **mark** a spot secretly. The opponent must **guess** the spot. Regardless of the guess, the mark becomes a permanent piece on the board, but the question is (and the core idea of the game), whose piece it becomes.
+*   If the guess is **wrong**: The marker gets a stone on the marked place and it's the guesser's turn to mark now (turn switch).
+*   If the guess is **correct**: The guesser gets a stone on the marked place and the marker is marking again. This can lead to guess chains if the marker is making poor marks.
 
 **Implementation Strategy: Infrastructure-First**
 We will not build "throwaway" logic. We will implement the WebRTC transport layer immediately. Development and debugging will primarily occur in a **Multi-Device environment** (Web vs. Android Emulator) to guarantee network reliability before game rules are applied.

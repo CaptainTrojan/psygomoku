@@ -4,13 +4,6 @@
 
 A strategy board game based on Gomoku (5-in-a-row) with a unique "Mental Poker" twist. Players place pieces secretly using cryptographic commitments—guess your opponent's move correctly to block them!
 
-## 🎮 Game Concept
-
-- **Mark:** Secretly commit to a position using SHA-256 hash
-- **Guess:** Try to predict opponent's secret mark
-- **Reveal:** If guessed correctly, mark is blocked. Otherwise, piece is placed!
-- **Win:** Get 5 in a row (horizontal, vertical, or diagonal)
-
 ## 🏗️ Architecture
 
 **Hexagonal Architecture (Ports & Adapters)**
