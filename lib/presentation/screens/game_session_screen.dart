@@ -280,6 +280,7 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
         providers: [
           BlocProvider.value(value: _gameBloc),
           BlocProvider.value(value: _chatBloc),
+          BlocProvider.value(value: context.read<ConnectionBloc>()),
         ],
         child: const GameBoardScreen(),
       ),

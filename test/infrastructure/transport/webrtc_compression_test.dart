@@ -5,7 +5,7 @@ void main() {
   group('WebRTC Signal Compression', () {
     test('compresses and decompresses signal data correctly', () {
       // Arrange - Create realistic SDP-like data
-      final originalData = '''
+      const originalData = '''
 {
   "type": "offer",
   "sdp": "v=0\\r\\no=- 1234567890 2 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0\\r\\na=extmap-allow-mixed\\r\\na=msid-semantic: WMS\\r\\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\\r\\nc=IN IP4 0.0.0.0\\r\\na=candidate:1234567890 1 udp 2113937151 192.168.1.1 51234 typ host generation 0 network-cost 999\\r\\na=ice-ufrag:ABCD\\r\\na=ice-pwd:1234567890abcdef\\r\\na=ice-options:trickle\\r\\na=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\\r\\na=setup:actpass\\r\\na=mid:0\\r\\na=sctp-port:5000\\r\\na=max-message-size:262144\\r\\n"
@@ -30,9 +30,9 @@ void main() {
 
     test('handles compression of various data sizes', () {
       // Test that compression works with different input sizes
-      final smallData = '{"type":"test","data":"small"}';
-      final mediumData = '{"type":"offer","sdp":"' + ('x' * 500) + '"}';
-      final largeData = '{"type":"offer","sdp":"' + ('x' * 2000) + '"}';
+      const smallData = '{"type":"test","data":"small"}';
+      final mediumData = '{"type":"offer","sdp":"${'x' * 500}"}';
+      final largeData = '{"type":"offer","sdp":"${'x' * 2000}"}';
 
       expect(smallData.length, lessThan(100));
       expect(mediumData.length, greaterThan(400));
@@ -46,7 +46,7 @@ void main() {
 
     test('handles special characters in signal data', () {
       // Test that compression handles special characters, newlines, etc.
-      final dataWithSpecialChars = '''
+      const dataWithSpecialChars = '''
 {
   "type": "answer",
   "sdp": "v=0\\r\\n\\t\\x00special\\u0000chars"
@@ -96,7 +96,7 @@ void main() {
 
   group('Signal Data Format', () {
     test('validates offer structure', () {
-      final offerJson = '''
+      const offerJson = '''
 {
   "type": "offer",
   "sdp": "v=0..."
@@ -110,7 +110,7 @@ void main() {
     });
 
     test('validates answer structure', () {
-      final answerJson = '''
+      const answerJson = '''
 {
   "type": "answer",
   "sdp": "v=0..."

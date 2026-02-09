@@ -411,7 +411,7 @@ void main() {
     for (int i = 0; i < 5; i++) {
       final markPos = positions[i];
       // Guess wrong (always 14,14 which is never the mark) → turn switches
-      final guessPos = const Position(14, 14);
+      const guessPos = Position(14, 14);
 
       h.mark(marker, markPos);
       await h.pumpEvents();

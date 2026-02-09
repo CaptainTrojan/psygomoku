@@ -47,7 +47,7 @@ void main() {
       final result = GameResult.win(
         winner: player,
         loser: opponent,
-        finalBoard: Board(),
+        finalBoard: const Board(),
         winningColor: StoneColor.cyan,
       );
 

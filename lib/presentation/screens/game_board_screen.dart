@@ -5,6 +5,8 @@ import '../blocs/game_bloc/game_state.dart';
 import '../blocs/game_bloc/game_event.dart';
 import '../blocs/chat_bloc/chat_bloc.dart';
 import '../blocs/chat_bloc/chat_state.dart';
+import '../blocs/connection_bloc/connection_bloc.dart';
+import '../blocs/connection_bloc/connection_event.dart' as connection_events;
 import '../../domain/entities/game_result.dart';
 import '../../domain/entities/position.dart';
 import '../widgets/game_board_widget.dart';
@@ -38,6 +40,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     });
   }
 
+  /// Leave the game and return to main menu, notifying opponent
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,6 +73,26 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     Navigator.of(context).pop(); // Close the dialog
                   }
 
+                  // Handle opponent disconnect while dialog is showing (rematch negotiation)
+                  if (_isDialogShowing &&
+                      state is GameOverState &&
+                      state.result.reason == GameEndReason.disconnect) {
+                    // Opponent left during rematch negotiation - go to main menu
+                    _isDialogShowing = false;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      // Close dialog and go to main menu
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Opponent left the game'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    });
+                    return;
+                  }
+
                   // Show game over dialog
                   if (state is GameOverState && !_isDialogShowing) {
                     // Don't show dialog if WE disconnected (we're the loser in disconnect)
@@ -77,7 +100,8 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     if (state.result.reason == GameEndReason.disconnect &&
                         state.result.loser?.id == state.localPlayer.id) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.of(context).pop(); // Return to lobby
+                        if (!mounted) return;
+                        Navigator.of(context).popUntil((route) => route.isFirst);
                       });
                     } else {
                       _showGameOverDialog(context, state);
@@ -348,6 +372,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
   void _showGameOverDialog(BuildContext parentContext, GameOverState state) {
     final gameBloc = parentContext.read<GameBloc>();
+    final connectionBloc = parentContext.read<ConnectionBloc>();
     _isDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -414,16 +439,20 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                         isDisconnect
                             ? [
                               // Disconnect only shows Okay button
+                              // No need to send disconnect - opponent already left
                               SizedBox(
                                 width: double.infinity,
                                 height: 48,
                                 child: FilledButton(
                                   onPressed: () {
                                     _isDialogShowing = false;
-                                    Navigator.of(dialogContext).pop();
-                                    Navigator.of(
-                                      parentContext,
-                                    ).pop(); // Return to home
+                                    // Clean up connection and go to main menu
+                                    connectionBloc.add(
+                                      const connection_events.DisconnectEvent(),
+                                    );
+                                    Navigator.of(dialogContext).popUntil(
+                                      (route) => route.isFirst,
+                                    );
                                   },
                                   style: FilledButton.styleFrom(
                                     backgroundColor: const Color(0xFF00E5FF),
@@ -449,7 +478,6 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                                     child: _buildRematchButton(
                                       context,
                                       currentState,
-                                      parentContext,
                                     ),
                                   ),
                                   const SizedBox(height: 12),
@@ -459,10 +487,18 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                                     child: OutlinedButton(
                                       onPressed: () {
                                         _isDialogShowing = false;
-                                        Navigator.of(dialogContext).pop();
-                                        Navigator.of(
-                                          parentContext,
-                                        ).pop(); // Return to home
+                                        // Notify opponent and go to main menu
+                                        final transport = connectionBloc.transport;
+                                        transport?.send({
+                                          'type': 'disconnect',
+                                          'timestamp': DateTime.now().toIso8601String(),
+                                        });
+                                        connectionBloc.add(
+                                          const connection_events.DisconnectEvent(),
+                                        );
+                                        Navigator.of(dialogContext).popUntil(
+                                          (route) => route.isFirst,
+                                        );
                                       },
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Colors.white,
@@ -491,7 +527,6 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   Widget _buildRematchButton(
     BuildContext context,
     GameOverState state,
-    BuildContext parentContext,
   ) {
     // Both want rematch - game will restart automatically
     if (state.localWantsRematch && state.remoteWantsRematch) {

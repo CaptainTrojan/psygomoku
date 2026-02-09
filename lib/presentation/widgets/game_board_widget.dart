@@ -154,7 +154,7 @@ class GameBoardWidget extends StatelessWidget {
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: Colors.transparent,
                             ),
                           ),

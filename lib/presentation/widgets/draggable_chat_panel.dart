@@ -124,7 +124,7 @@ class _DraggableChatPanelState extends State<DraggableChatPanel>
               child: Column(
                 children: [
                   // Chat content
-                  Expanded(
+                  const Expanded(
                     child: ChatWidget(compact: false),
                   ),
                   // Drag handle (at bottom for sliding from top)

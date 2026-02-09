@@ -8,7 +8,7 @@ void main() {
   group('GameRulesEngine', () {
     test('detects horizontal win', () {
       final engine = GameRulesEngine();
-      var board = Board();
+      var board = const Board();
 
       for (var x = 0; x < 5; x++) {
         board = board.placeRegularStone(
@@ -24,13 +24,13 @@ void main() {
 
     test('rejects occupied move', () {
       final engine = GameRulesEngine();
-      final board = Board().placeRegularStone(
-        position: Position(2, 2),
+      final board = const Board().placeRegularStone(
+        position: const Position(2, 2),
         color: StoneColor.magenta,
       );
 
-      expect(engine.isValidMove(board, Position(2, 2)), isFalse);
-      expect(engine.isValidMove(board, Position(3, 2)), isTrue);
+      expect(engine.isValidMove(board, const Position(2, 2)), isFalse);
+      expect(engine.isValidMove(board, const Position(3, 2)), isTrue);
     });
   });
 }

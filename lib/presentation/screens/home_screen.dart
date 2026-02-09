@@ -80,20 +80,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
 
             // Floating glow shapes
-            Positioned(
+            const Positioned(
               left: -80,
               top: 80,
               child: _GlowOrb(
-                color: const Color(0xFF00E5FF),
+                color: Color(0xFF00E5FF),
                 size: 200,
                 opacity: 0.15,
               ),
             ),
-            Positioned(
+            const Positioned(
               right: -120,
               bottom: 120,
               child: _GlowOrb(
-                color: const Color(0xFFFF4081),
+                color: Color(0xFFFF4081),
                 size: 260,
                 opacity: 0.12,
               ),

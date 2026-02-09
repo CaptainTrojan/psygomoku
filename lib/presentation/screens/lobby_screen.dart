@@ -353,7 +353,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    signalData.substring(0, 100) + '...',
+                    '${signalData.substring(0, 100)}...',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.5),
                       fontSize: 10,
@@ -569,9 +569,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
               size: 64,
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Connection Failed',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -787,15 +787,15 @@ class _JoinGameScreenState extends State<_JoinGameScreen> {
   }
 
   Widget _buildJoiningView() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
             color: Color(0xFF00E5FF),
           ),
-          const SizedBox(height: 24),
-          const Text(
+          SizedBox(height: 24),
+          Text(
             'Processing offer and generating answer...',
             style: TextStyle(
               color: Colors.white70,

@@ -61,7 +61,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// Start a new game
   Future<void> _onStartGame(StartGameEvent event, Emitter<GameState> emit) async {
-    final board = Board();
+    const board = Board();
     
     // Host (Player 1) marks first
     final isHostTurn = event.localPlayer.isHost;
@@ -689,25 +689,47 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// Opponent disconnected
   Future<void> _onOpponentDisconnected(OpponentDisconnectedEvent event, Emitter<GameState> emit) async {
-    if (state is! GameActiveState) return;
+    // Handle disconnect during active game
+    if (state is GameActiveState) {
+      final currentState = state as GameActiveState;
+      
+      final result = GameResult.disconnect(
+        winner: currentState.localPlayer,
+        disconnector: currentState.remotePlayer,
+        finalBoard: currentState.board,
+      );
+      
+      _gameTimer?.cancel();
+      
+      emit(GameOverState(
+        result: result,
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        finalBoard: currentState.board,
+        moveHistory: currentState.moveHistory,
+      ));
+      return;
+    }
     
-    final currentState = state as GameActiveState;
-    
-    final result = GameResult.disconnect(
-      winner: currentState.localPlayer,
-      disconnector: currentState.remotePlayer,
-      finalBoard: currentState.board,
-    );
-    
-    _gameTimer?.cancel();
-    
-    emit(GameOverState(
-      result: result,
-      localPlayer: currentState.localPlayer,
-      remotePlayer: currentState.remotePlayer,
-      finalBoard: currentState.board,
-      moveHistory: currentState.moveHistory,
-    ));
+    // Handle disconnect during game over state (e.g., during rematch dialog)
+    if (state is GameOverState) {
+      final currentState = state as GameOverState;
+      
+      // Update the result to show opponent disconnected
+      final result = GameResult.disconnect(
+        winner: currentState.localPlayer,
+        disconnector: currentState.remotePlayer,
+        finalBoard: currentState.finalBoard,
+      );
+      
+      emit(GameOverState(
+        result: result,
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        finalBoard: currentState.finalBoard,
+        moveHistory: currentState.moveHistory,
+      ));
+    }
   }
 
   /// Cheat detected
@@ -778,7 +800,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// Restart game with swapped starting roles
   void _restartGame(GameOverState currentState, Emitter<GameState> emit) {
-    final board = Board();
+    const board = Board();
     _cleanupTurn();
     _gameTimer?.cancel();
     _phaseStartTime = DateTime.now();

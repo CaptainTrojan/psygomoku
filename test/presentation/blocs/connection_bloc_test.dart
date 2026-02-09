@@ -72,8 +72,8 @@ void main() {
         build: () => ConnectionBloc(),
         seed: () => const ConnectedState(),
         act: (bloc) {
-          bloc.add(MessageReceivedEvent({'type': 'test', 'text': 'message1'}));
-          bloc.add(MessageReceivedEvent({'type': 'test', 'text': 'message2'}));
+          bloc.add(const MessageReceivedEvent({'type': 'test', 'text': 'message1'}));
+          bloc.add(const MessageReceivedEvent({'type': 'test', 'text': 'message2'}));
         },
         expect: () => [
           isA<ConnectedState>()
@@ -84,7 +84,7 @@ void main() {
       );
 
       test('ConnectedState copyWithMessage preserves existing messages', () {
-        final state = const ConnectedState();
+        const state = ConnectedState();
         final msg1 = {'type': 'test', 'msg': 'first'};
         final msg2 = {'type': 'test', 'msg': 'second'};
         

@@ -6,7 +6,7 @@ void main() {
   group('CryptoService', () {
     test('generates valid hash and salt and verifies commitment', () {
       final service = CryptoService();
-      final position = Position(7, 7);
+      const position = Position(7, 7);
 
       final commitment = service.generateCommitment(position);
 
@@ -24,8 +24,8 @@ void main() {
 
     test('fails verification with wrong position', () {
       final service = CryptoService();
-      final position = Position(3, 4);
-      final wrongPosition = Position(4, 4);
+      const position = Position(3, 4);
+      const wrongPosition = Position(4, 4);
 
       final commitment = service.generateCommitment(position);
 

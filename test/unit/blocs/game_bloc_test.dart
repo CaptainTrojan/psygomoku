@@ -72,7 +72,7 @@ void main() {
           .copyWith(isHost: true, stoneColor: StoneColor.cyan);
         bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
         bloc.add(OpponentMarkedEvent(hash: 'hash', timestamp: DateTime.now()));
-        bloc.add(SelectPositionEvent(Position(5, 5)));
+        bloc.add(const SelectPositionEvent(Position(5, 5)));
       },
       expect: () => [
         isA<OpponentMarkingState>(),
@@ -92,7 +92,7 @@ void main() {
       // Guest is in GuessingState after opponent marks
       await bloc.stream.firstWhere((state) => state is GuessingState);
 
-      bloc.add(SelectPositionEvent(Position(4, 4)));
+      bloc.add(const SelectPositionEvent(Position(4, 4)));
       bloc.add(const ConfirmGuessEvent());
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -102,7 +102,7 @@ void main() {
 
     test('verifies opponent reveal with valid hash', () async {
       final crypto = CryptoService();
-      final opponentPosition = Position(7, 7);
+      const opponentPosition = Position(7, 7);
       final commitment = crypto.generateCommitment(opponentPosition);
 
         final local = Player.create(nickname: 'Guest', avatarColor: '#6B5B95')
@@ -116,7 +116,7 @@ void main() {
       // Guest is in GuessingState after opponent marks
       await bloc.stream.firstWhere((state) => state is GuessingState);
 
-      bloc.add(SelectPositionEvent(Position(7, 7)));
+      bloc.add(const SelectPositionEvent(Position(7, 7)));
       bloc.add(const ConfirmGuessEvent());
 
       // After guessing, guest waits in OpponentRevealingState for the reveal

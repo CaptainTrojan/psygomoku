@@ -86,7 +86,7 @@ class _CollapsibleChatWidgetState extends State<CollapsibleChatWidget>
                       ),
                       const SizedBox(height: 8),
                       // Chat widget
-                      Expanded(
+                      const Expanded(
                         child: ChatWidget(compact: false),
                       ),
                     ],

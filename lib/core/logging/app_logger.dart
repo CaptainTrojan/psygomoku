@@ -41,6 +41,7 @@ class AppLogger {
 class _ModuleFilter extends LogFilter {
   _ModuleFilter(this.level);
 
+  @override
   final Level level;
 
   @override
