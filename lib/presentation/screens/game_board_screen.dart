@@ -3,224 +3,312 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/game_bloc/game_bloc.dart';
 import '../blocs/game_bloc/game_state.dart';
 import '../blocs/game_bloc/game_event.dart';
+import '../blocs/chat_bloc/chat_bloc.dart';
+import '../blocs/chat_bloc/chat_state.dart';
+import '../../domain/entities/game_result.dart';
+import '../../domain/entities/position.dart';
 import '../widgets/game_board_widget.dart';
 import '../widgets/player_info_bar.dart';
 import '../widgets/timer_widget.dart';
 import '../widgets/turn_indicator.dart';
-import '../widgets/chat_widget.dart';
+import '../widgets/draggable_chat_panel.dart';
+import '../widgets/side_button_panel.dart';
 
 /// Main game screen showing board, player info, and timer
-class GameBoardScreen extends StatelessWidget {
+class GameBoardScreen extends StatefulWidget {
   const GameBoardScreen({super.key});
+
+  @override
+  State<GameBoardScreen> createState() => _GameBoardScreenState();
+}
+
+class _GameBoardScreenState extends State<GameBoardScreen> {
+  bool _isChatOpen = false;
+  int _unreadCount = 0;
+  int _lastSeenMessageCount = 0;
+  bool _isDialogShowing = false;
+
+  void _toggleChat() {
+    setState(() {
+      _isChatOpen = !_isChatOpen;
+      if (_isChatOpen) {
+        _unreadCount = 0;
+        _lastSeenMessageCount = 0; // Reset when opening
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27), // Dark blue background
       body: SafeArea(
-        child: BlocConsumer<GameBloc, GameState>(
-          listener: (context, state) {
-            // Show game over dialog
-            if (state is GameOverState) {
-              _showGameOverDialog(context, state);
-            }
-          },
-          builder: (context, state) {
-            if (state is GameInitial) {
-              return const Center(
-                child: Text(
-                  'Initializing game...',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              );
-            }
+        child: Stack(
+          children: [
+            // Chat message listener (separate from builder to avoid setState during build)
+            BlocListener<ChatBloc, ChatState>(
+              listener: (context, chatState) {
+                final currentCount = chatState.messages.length;
+                if (!_isChatOpen && currentCount > _lastSeenMessageCount) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _unreadCount = currentCount - _lastSeenMessageCount;
+                      });
+                    }
+                  });
+                }
+                if (_isChatOpen) {
+                  _lastSeenMessageCount = currentCount;
+                }
+              },
+              child: BlocConsumer<GameBloc, GameState>(
+                listener: (context, state) {
+                  // Close dialog when game restarts (rematch accepted)
+                  if (_isDialogShowing && state is! GameOverState) {
+                    _isDialogShowing = false;
+                    Navigator.of(context).pop(); // Close the dialog
+                  }
 
-            if (state is! GameActiveState && state is! GameOverState) {
-              return const Center(
-                child: Text(
-                  'Invalid game state',
-                  style: TextStyle(color: Colors.red, fontSize: 18),
-                ),
-              );
-            }
-
-            // Determine players for display
-            final localPlayer = state is GameActiveState
-                ? state.localPlayer
-                : (state as GameOverState).localPlayer;
-            final remotePlayer = state is GameActiveState
-                ? state.remotePlayer
-                : (state as GameOverState).remotePlayer;
-            final board = state is GameActiveState
-                ? state.board
-                : (state as GameOverState).finalBoard;
-            final moveHistory = state is GameActiveState
-                ? state.moveHistory
-                : (state as GameOverState).moveHistory;
-
-            // Get last wrong guess position for showing cross marker
-            final lastMove = moveHistory.isNotEmpty ? moveHistory.last : null;
-            final wrongGuessPosition = (lastMove?.wasGuessCorrect == false)
-                ? lastMove!.guess
-                : null;
-            // Determine guesser color: if marker was local, guesser was remote
-            final wrongGuessColor = (lastMove?.wasGuessCorrect == false && lastMove != null)
-                ? (lastMove.markerColor == localPlayer.stoneColor
-                    ? remotePlayer.stoneColor?.color
-                    : localPlayer.stoneColor?.color)
-                : null;
-            
-            // Highlight last placed stone (clears on next selection)
-            final highlightPosition = (state is GameActiveState && 
-                                       state.selectedPosition == null && 
-                                       lastMove != null)
-                ? lastMove.markedPosition
-                : null;
-
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 900;
-
-                final boardColumn = Column(
-                  children: [
-                    // Top padding
-                    const SizedBox(height: 8),
-
-                    // Opponent info bar (top)
-                    PlayerInfoBar(
-                      player: remotePlayer,
-                      isOpponent: true,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Timer and turn indicator
-                    if (state is GameActiveState && state.hasTimer)
-                      TimerWidget(
-                        remainingSeconds: state.remainingSeconds!,
-                        isLocalPlayerTurn: state.isLocalPlayerTurn,
+                  // Show game over dialog
+                  if (state is GameOverState && !_isDialogShowing) {
+                    // Don't show dialog if WE disconnected (we're the loser in disconnect)
+                    // Just navigate back to lobby
+                    if (state.result.reason == GameEndReason.disconnect &&
+                        state.result.loser?.id == state.localPlayer.id) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.of(context).pop(); // Return to lobby
+                      });
+                    } else {
+                      _showGameOverDialog(context, state);
+                    }
+                  }
+                },
+                builder: (context, state) {
+                  if (state is GameInitial) {
+                    return const Center(
+                      child: Text(
+                        'Initializing game...',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
                       ),
+                    );
+                  }
 
-                    if (state is GameActiveState)
-                      TurnIndicator(
-                        state: state,
+                  if (state is! GameActiveState && state is! GameOverState) {
+                    return const Center(
+                      child: Text(
+                        'Invalid game state',
+                        style: TextStyle(color: Colors.red, fontSize: 18),
                       ),
+                    );
+                  }
 
-                    const SizedBox(height: 16),
+                  // Determine players for display
+                  final localPlayer =
+                      state is GameActiveState
+                          ? state.localPlayer
+                          : (state as GameOverState).localPlayer;
+                  final remotePlayer =
+                      state is GameActiveState
+                          ? state.remotePlayer
+                          : (state as GameOverState).remotePlayer;
+                  final board =
+                      state is GameActiveState
+                          ? state.board
+                          : (state as GameOverState).finalBoard;
+                  final moveHistory =
+                      state is GameActiveState
+                          ? state.moveHistory
+                          : (state as GameOverState).moveHistory;
 
-                    // Game board (centered and sized appropriately)
-                    Expanded(
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 1.0,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 600,
-                              maxHeight: 600,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: GameBoardWidget(
-                                board: board,
-                                onPositionTapped: state is GameActiveState &&
-                                        state.isLocalPlayerTurn
-                                    ? (position) {
-                                        context
-                                            .read<GameBloc>()
-                                            .add(SelectPositionEvent(position));
-                                      }
-                                    : null,
-                                selectedPosition: state is GameActiveState
-                                    ? state.selectedPosition
-                                    : null,
-                                guessMarkerPosition: state is OpponentRevealingState
-                                    ? state.ourGuess
-                                    : wrongGuessPosition,
-                                guessMarkerColor: state is OpponentRevealingState
-                                    ? localPlayer.stoneColor?.color
-                                    : wrongGuessColor,
-                                highlightPosition: highlightPosition,
-                                onConfirmSelection: state is GameActiveState
-                                    ? () {
-                                        if (state is MarkingState) {
-                                          context
-                                              .read<GameBloc>()
-                                              .add(const ConfirmMarkEvent());
-                                        } else if (state is GuessingState) {
-                                          context
-                                              .read<GameBloc>()
-                                              .add(const ConfirmGuessEvent());
-                                        }
-                                      }
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  // ============================================================
+                  // SIMPLIFIED INDICATOR LOGIC
+                  // Only show indicators in MarkingState or OpponentMarkingState
+                  // ============================================================
+                  final bool isInMarkingPhase =
+                      state is MarkingState || state is OpponentMarkingState;
+                  final lastMove =
+                      moveHistory.isNotEmpty ? moveHistory.last : null;
 
-                    const SizedBox(height: 16),
+                  // Last move indicators (border + cross) - ONLY in marking phase
+                  Position? lastMarkPosition;
+                  Position? lastGuessPosition;
+                  Color? guessMarkerColor;
 
-                    // Local player info bar (bottom)
-                    PlayerInfoBar(
-                      player: localPlayer,
-                      isOpponent: false,
-                    ),
+                  if (isInMarkingPhase &&
+                      lastMove != null &&
+                      lastMove.guess != null) {
+                    lastMarkPosition = lastMove.markedPosition;
+                    lastGuessPosition = lastMove.guess;
 
-                    // Bottom padding
-                    const SizedBox(height: 8),
+                    // Guesser color is the opposite of marker color
+                    guessMarkerColor =
+                        lastMove.markerColor == localPlayer.stoneColor
+                            ? remotePlayer.stoneColor?.color
+                            : localPlayer.stoneColor?.color;
+                  }
 
-                    // Forfeit button
-                    if (state is GameActiveState)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showForfeitDialog(context),
-                          icon: const Icon(Icons.flag, color: Colors.redAccent),
-                          label: const Text(
-                            'Forfeit',
-                            style: TextStyle(color: Colors.redAccent),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.redAccent),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
+                  // Cross only shows if guess missed (different position than mark)
+                  final bool guessMissed =
+                      lastGuessPosition != null &&
+                      lastMarkPosition != null &&
+                      lastGuessPosition != lastMarkPosition;
 
-                if (isWide) {
+                  // Preview position - when we marked but opponent hasn't guessed yet
+                  Position? previewMarkedPosition;
+                  if (state is OpponentGuessingState) {
+                    previewMarkedPosition = state.ourMarkedPosition;
+                  }
+
                   return Row(
                     children: [
-                      Expanded(child: boardColumn),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 320,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 12, right: 12, bottom: 12),
-                          child: ChatWidget(compact: true),
+                      // Main game area
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // Top padding
+                            const SizedBox(height: 8),
+
+                            // Opponent info bar
+                            PlayerInfoBar(
+                              player: remotePlayer,
+                              isOpponent: true,
+                            ),
+
+                            // STATIC opponent status indicator area (always 60px)
+                            Container(
+                              height: 60,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child:
+                                  state is GameActiveState &&
+                                          !state.isLocalPlayerTurn &&
+                                          state is! OpponentRevealingState &&
+                                          state is! RevealingState
+                                      ? TurnIndicator(state: state)
+                                      : const SizedBox.shrink(),
+                            ),
+
+                            // Timer (if active)
+                            if (state is GameActiveState && state.hasTimer)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: TimerWidget(
+                                  remainingSeconds: state.remainingSeconds!,
+                                  isLocalPlayerTurn: state.isLocalPlayerTurn,
+                                ),
+                              ),
+
+                            // Game board (centered and sized appropriately)
+                            Expanded(
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio: 1.0,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 600,
+                                      maxHeight: 600,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: GameBoardWidget(
+                                        board: board,
+                                        onPositionTapped:
+                                            state is GameActiveState &&
+                                                    state.isLocalPlayerTurn
+                                                ? (position) {
+                                                  context.read<GameBloc>().add(
+                                                    SelectPositionEvent(
+                                                      position,
+                                                    ),
+                                                  );
+                                                }
+                                                : null,
+                                        selectedPosition:
+                                            state is GameActiveState
+                                                ? state.selectedPosition
+                                                : null,
+                                        guessMarkerPosition:
+                                            guessMissed
+                                                ? lastGuessPosition
+                                                : null,
+                                        guessMarkerColor:
+                                            guessMissed
+                                                ? guessMarkerColor
+                                                : null,
+                                        previewMarkedPosition:
+                                            previewMarkedPosition,
+                                        lastPlayedPosition:
+                                            isInMarkingPhase
+                                                ? lastMarkPosition
+                                                : null,
+                                        localPlayerColor:
+                                            localPlayer.stoneColor,
+                                        remotePlayerColor:
+                                            remotePlayer.stoneColor,
+                                        onConfirmSelection:
+                                            state is GameActiveState
+                                                ? () {
+                                                  if (state is MarkingState) {
+                                                    context.read<GameBloc>().add(
+                                                      const ConfirmMarkEvent(),
+                                                    );
+                                                  } else if (state
+                                                      is GuessingState) {
+                                                    context.read<GameBloc>().add(
+                                                      const ConfirmGuessEvent(),
+                                                    );
+                                                  }
+                                                }
+                                                : null,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // STATIC local status indicator area (always 60px)
+                            Container(
+                              height: 60,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child:
+                                  state is GameActiveState &&
+                                          state.isLocalPlayerTurn &&
+                                          state is! OpponentRevealingState &&
+                                          state is! RevealingState
+                                      ? TurnIndicator(state: state)
+                                      : const SizedBox.shrink(),
+                            ),
+
+                            // Local player info bar
+                            PlayerInfoBar(
+                              player: localPlayer,
+                              isOpponent: false,
+                            ),
+
+                            // Bottom padding
+                            const SizedBox(height: 8),
+                          ],
                         ),
+                      ),
+
+                      // Side panel with buttons
+                      SideButtonPanel(
+                        onChatPressed: _toggleChat,
+                        onForfeitPressed: () => _showForfeitDialog(context),
+                        unreadChatCount: _unreadCount,
                       ),
                     ],
                   );
-                }
+                },
+              ),
+            ),
 
-                return Column(
-                  children: [
-                    Expanded(child: boardColumn),
-                    SizedBox(
-                      height: 220,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                        child: ChatWidget(compact: true),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+            // Draggable chat panel overlay
+            DraggableChatPanel(isOpen: _isChatOpen, onToggle: _toggleChat),
+          ],
         ),
       ),
     );
@@ -229,99 +317,250 @@ class GameBoardScreen extends StatelessWidget {
   void _showForfeitDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1E3E),
-        title: const Text(
-          'Forfeit Game?',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Are you sure you want to forfeit? This will count as a loss.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<GameBloc>().add(const ForfeitEvent());
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Forfeit'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showGameOverDialog(BuildContext context, GameOverState state) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1E3E),
-          title: Text(
-            state.didLocalPlayerWin
-                ? '🎉 Victory!'
-                : state.isDraw
-                    ? '🤝 Draw'
-                    : '💔 Defeat',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1E3E),
+            title: const Text(
+              'Forfeit Game?',
+              style: TextStyle(color: Colors.white),
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                state.result.getResultText(state.localPlayer),
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center,
+            content: const Text(
+              'Are you sure you want to forfeit? This will count as a loss.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 16),
-              Text(
-                state.result.getDetailedDescription(state.localPlayer),
-                style: const TextStyle(color: Colors.white54, fontSize: 14),
-                textAlign: TextAlign.center,
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  context.read<GameBloc>().add(const ForfeitEvent());
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                child: const Text('Forfeit'),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                // Send disconnect notification
-                context.read<GameBloc>().add(const DisconnectEvent());
-                Navigator.of(dialogContext).pop();
-                Navigator.of(context).pop(); // Return to lobby/home
-              },
-              child: const Text('Back to Lobby'),
-            ),
-            FilledButton(
-              onPressed: () {
-                // TODO: Implement rematch - for now just notify user
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Rematch feature coming soon!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF),
-                foregroundColor: Colors.black,
+    );
+  }
+
+  void _showGameOverDialog(BuildContext parentContext, GameOverState state) {
+    final gameBloc = parentContext.read<GameBloc>();
+    _isDialogShowing = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      showDialog(
+        context: parentContext,
+        barrierDismissible: false,
+        builder:
+            (dialogContext) => BlocProvider.value(
+              value: gameBloc,
+              child: BlocBuilder<GameBloc, GameState>(
+                builder: (context, currentState) {
+                  // If not in game over state, show loading (dialog will close via parent listener)
+                  if (currentState is! GameOverState) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final isDisconnect =
+                      currentState.result.reason == GameEndReason.disconnect;
+
+                  return AlertDialog(
+                    backgroundColor: const Color(0xFF1A1E3E),
+                    title: Text(
+                      currentState.didLocalPlayerWin
+                          ? '🎉 Victory!'
+                          : currentState.isDraw
+                          ? '🤝 Draw'
+                          : '💔 Defeat',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          currentState.result.getResultText(
+                            currentState.localPlayer,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          currentState.result.getDetailedDescription(
+                            currentState.localPlayer,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                    actions:
+                        isDisconnect
+                            ? [
+                              // Disconnect only shows Okay button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: FilledButton(
+                                  onPressed: () {
+                                    _isDialogShowing = false;
+                                    Navigator.of(dialogContext).pop();
+                                    Navigator.of(
+                                      parentContext,
+                                    ).pop(); // Return to home
+                                  },
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00E5FF),
+                                    foregroundColor: Colors.black,
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  child: const Text('Okay'),
+                                ),
+                              ),
+                            ]
+                            : [
+                              // Large stacked buttons like lichess
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // Play Again / Waiting / Accept button
+                                  SizedBox(
+                                    height: 48,
+                                    child: _buildRematchButton(
+                                      context,
+                                      currentState,
+                                      parentContext,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Back to Lobby button
+                                  SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        _isDialogShowing = false;
+                                        Navigator.of(dialogContext).pop();
+                                        Navigator.of(
+                                          parentContext,
+                                        ).pop(); // Return to home
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        side: const BorderSide(
+                                          color: Colors.white54,
+                                        ),
+                                        textStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      child: const Text('Back to Lobby'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                  );
+                },
               ),
-              child: const Text('Play Again'),
             ),
+      );
+    });
+  }
+
+  Widget _buildRematchButton(
+    BuildContext context,
+    GameOverState state,
+    BuildContext parentContext,
+  ) {
+    // Both want rematch - game will restart automatically
+    if (state.localWantsRematch && state.remoteWantsRematch) {
+      return FilledButton(
+        onPressed: null, // Disabled while transitioning
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.grey.shade700,
+          foregroundColor: Colors.white54,
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        child: const Text('Starting game...'),
+      );
+    }
+
+    // We want rematch, waiting for opponent
+    if (state.localWantsRematch) {
+      return FilledButton(
+        onPressed: null, // Disabled
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.grey.shade700,
+          foregroundColor: Colors.white54,
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white54),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Waiting for opponent...'),
           ],
         ),
       );
-    });
+    }
+
+    // Opponent wants rematch, asking us to accept
+    if (state.remoteWantsRematch) {
+      return FilledButton(
+        onPressed: () {
+          context.read<GameBloc>().add(const RequestRematchEvent());
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(
+            0xFF4CAF50,
+          ), // Green to indicate acceptance
+          foregroundColor: Colors.white,
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        child: const Text('✓ Opponent wants rematch - Accept?'),
+      );
+    }
+
+    // Normal state - neither has clicked yet
+    return FilledButton(
+      onPressed: () {
+        context.read<GameBloc>().add(const RequestRematchEvent());
+      },
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF00E5FF),
+        foregroundColor: Colors.black,
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      child: const Text('Play Again'),
+    );
   }
 }

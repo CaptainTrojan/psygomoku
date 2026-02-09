@@ -344,6 +344,8 @@ class GameOverState extends GameState {
   final Player remotePlayer;
   final Board finalBoard;
   final List<Move> moveHistory;
+  final bool localWantsRematch;
+  final bool remoteWantsRematch;
 
   const GameOverState({
     required this.result,
@@ -351,6 +353,8 @@ class GameOverState extends GameState {
     required this.remotePlayer,
     required this.finalBoard,
     required this.moveHistory,
+    this.localWantsRematch = false,
+    this.remoteWantsRematch = false,
   });
 
   /// Check if local player won
@@ -359,6 +363,22 @@ class GameOverState extends GameState {
   /// Check if it was a draw
   bool get isDraw => result.isDraw;
 
+  /// Copy with updated rematch requests
+  GameOverState copyWith({
+    bool? localWantsRematch,
+    bool? remoteWantsRematch,
+  }) {
+    return GameOverState(
+      result: result,
+      localPlayer: localPlayer,
+      remotePlayer: remotePlayer,
+      finalBoard: finalBoard,
+      moveHistory: moveHistory,
+      localWantsRematch: localWantsRematch ?? this.localWantsRematch,
+      remoteWantsRematch: remoteWantsRematch ?? this.remoteWantsRematch,
+    );
+  }
+
   @override
-  List<Object?> get props => [result, localPlayer, remotePlayer, finalBoard, moveHistory];
+  List<Object?> get props => [result, localPlayer, remotePlayer, finalBoard, moveHistory, localWantsRematch, remoteWantsRematch];
 }

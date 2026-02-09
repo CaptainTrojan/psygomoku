@@ -4,6 +4,7 @@ import '../../../domain/entities/board.dart';
 import '../../../domain/entities/position.dart';
 import '../../../domain/entities/move.dart';
 import '../../../domain/entities/game_result.dart';
+import '../../../domain/entities/game_config.dart';
 import '../../../domain/services/crypto_service.dart';
 import '../../../domain/services/game_rules_engine.dart';
 import '../../../infrastructure/transport/i_game_transport.dart' as transport_pkg;
@@ -44,9 +45,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<ForfeitEvent>(_onForfeit);
     on<OpponentForfeitedEvent>(_onOpponentForfeited);
     on<DisconnectEvent>(_onDisconnect);
+    on<OpponentDisconnectedEvent>(_onOpponentDisconnected);
     on<CheatDetectedEvent>(_onCheatDetected);
     on<InitiateGuessPhaseEvent>(_onInitiateGuessPhase);
     on<StartNextTurnEvent>(_onStartNextTurn);
+    on<RequestRematchEvent>(_onRequestRematch);
+    on<OpponentRequestedRematchEvent>(_onOpponentRequestedRematch);
   }
 
   @override
@@ -659,8 +663,32 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     ));
   }
 
-  /// Connection lost
+  /// Connection lost - we are disconnecting
   Future<void> _onDisconnect(DisconnectEvent event, Emitter<GameState> emit) async {
+    if (state is! GameActiveState) return;
+    
+    final currentState = state as GameActiveState;
+    
+    // When WE disconnect, THEY win and WE are the disconnector
+    final result = GameResult.disconnect(
+      winner: currentState.remotePlayer,
+      disconnector: currentState.localPlayer,
+      finalBoard: currentState.board,
+    );
+    
+    _gameTimer?.cancel();
+    
+    emit(GameOverState(
+      result: result,
+      localPlayer: currentState.localPlayer,
+      remotePlayer: currentState.remotePlayer,
+      finalBoard: currentState.board,
+      moveHistory: currentState.moveHistory,
+    ));
+  }
+
+  /// Opponent disconnected
+  Future<void> _onOpponentDisconnected(OpponentDisconnectedEvent event, Emitter<GameState> emit) async {
     if (state is! GameActiveState) return;
     
     final currentState = state as GameActiveState;
@@ -708,6 +736,87 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   /// Start next turn (unused, integrated into _applyTurnResults)
   Future<void> _onStartNextTurn(StartNextTurnEvent event, Emitter<GameState> emit) async {
     // Implementation moved into _applyTurnResults
+  }
+
+  /// Request rematch
+  Future<void> _onRequestRematch(RequestRematchEvent event, Emitter<GameState> emit) async {
+    if (state is! GameOverState) return;
+    
+    final currentState = state as GameOverState;
+    
+    // Update state to show we want rematch
+    final updatedState = currentState.copyWith(localWantsRematch: true);
+    emit(updatedState);
+    
+    // Send rematch request to opponent
+    await _transport.send({
+      'type': 'rematch_request',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
+    // If opponent already wants rematch, start the game
+    if (updatedState.remoteWantsRematch) {
+      _restartGame(updatedState, emit);
+    }
+  }
+
+  /// Opponent requested rematch
+  Future<void> _onOpponentRequestedRematch(OpponentRequestedRematchEvent event, Emitter<GameState> emit) async {
+    if (state is! GameOverState) return;
+    
+    final currentState = state as GameOverState;
+    
+    // Update state to show opponent wants rematch
+    final updatedState = currentState.copyWith(remoteWantsRematch: true);
+    emit(updatedState);
+    
+    // If we also want rematch, start the game
+    if (updatedState.localWantsRematch) {
+      _restartGame(updatedState, emit);
+    }
+  }
+
+  /// Restart game with swapped starting roles
+  void _restartGame(GameOverState currentState, Emitter<GameState> emit) {
+    final board = Board();
+    _cleanupTurn();
+    _gameTimer?.cancel();
+    _phaseStartTime = DateTime.now();
+    
+    // Use default config for rematch
+    final config = GameConfig.defaultConfig();
+    
+    // Swap who starts (if host started first game, guest starts second)
+    final hostStarted = currentState.localPlayer.isHost;
+    final localPlayerStarts = !hostStarted;
+    
+    if (localPlayerStarts) {
+      emit(MarkingState(
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        board: board,
+        config: config,
+        moveHistory: [],
+        remainingSeconds: config.isTimed ? config.initialSeconds : null,
+      ));
+      
+      if (config.isTimed) {
+        _startTimer(config.initialSeconds);
+      }
+    } else {
+      emit(OpponentMarkingState(
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        board: board,
+        config: config,
+        moveHistory: [],
+        remainingSeconds: config.isTimed ? config.initialSeconds : null,
+      ));
+      
+      if (config.isTimed) {
+        _startTimer(config.initialSeconds);
+      }
+    }
   }
 
   Future<void> _onUpdateRemotePlayer(

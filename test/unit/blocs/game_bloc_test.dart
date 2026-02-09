@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psygomoku/domain/entities/game_config.dart';
+import 'package:psygomoku/domain/entities/game_result.dart';
 import 'package:psygomoku/domain/entities/player.dart';
 import 'package:psygomoku/domain/entities/position.dart';
 import 'package:psygomoku/domain/entities/stone.dart';
@@ -137,6 +138,80 @@ void main() {
       if (currentState is GameActiveState) {
         expect(currentState.board.stones.isNotEmpty, isTrue);
       }
+    });
+
+    group('Disconnect handling', () {
+      blocTest<GameBloc, GameState>(
+        'local player disconnects - they lose',
+        build: () => bloc,
+        act: (bloc) {
+          final local = Player.create(nickname: 'Local', avatarColor: '#6B5B95')
+            .copyWith(isHost: true, stoneColor: StoneColor.cyan);
+          final remote = Player.create(nickname: 'Remote', avatarColor: '#4C4C4C')
+            .copyWith(isHost: false, stoneColor: StoneColor.magenta);
+          bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
+          bloc.add(const DisconnectEvent());
+        },
+        verify: (bloc) {
+          final state = bloc.state as GameOverState;
+          expect(state.result.reason, equals(GameEndReason.disconnect));
+          expect(state.result.loser?.nickname, equals('Local'));
+          expect(state.result.winner?.nickname, equals('Remote'));
+        },
+      );
+
+      blocTest<GameBloc, GameState>(
+        'opponent disconnects - they lose',
+        build: () => bloc,
+        act: (bloc) {
+          final local = Player.create(nickname: 'Local', avatarColor: '#6B5B95')
+            .copyWith(isHost: true, stoneColor: StoneColor.cyan);
+          final remote = Player.create(nickname: 'Remote', avatarColor: '#4C4C4C')
+            .copyWith(isHost: false, stoneColor: StoneColor.magenta);
+          bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
+          bloc.add(const OpponentDisconnectedEvent());
+        },
+        verify: (bloc) {
+          final state = bloc.state as GameOverState;
+          expect(state.result.reason, equals(GameEndReason.disconnect));
+          expect(state.result.loser?.nickname, equals('Remote'));
+          expect(state.result.winner?.nickname, equals('Local'));
+        },
+      );
+
+      test('disconnect event sends correct winner/loser', () async {
+        final local = Player.create(nickname: 'Local', avatarColor: '#6B5B95')
+          .copyWith(isHost: true, stoneColor: StoneColor.cyan);
+        final remote = Player.create(nickname: 'Remote', avatarColor: '#4C4C4C')
+          .copyWith(isHost: false, stoneColor: StoneColor.magenta);
+        
+        bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
+        await bloc.stream.firstWhere((state) => state is MarkingState);
+        
+        bloc.add(const DisconnectEvent());
+        final state = await bloc.stream.firstWhere((state) => state is GameOverState) as GameOverState;
+        
+        expect(state.result.winner?.id, equals(remote.id));
+        expect(state.result.loser?.id, equals(local.id));
+        expect(state.result.reason, equals(GameEndReason.disconnect));
+      });
+
+      test('opponent disconnect event sends correct winner/loser', () async {
+        final local = Player.create(nickname: 'Local', avatarColor: '#6B5B95')
+          .copyWith(isHost: true, stoneColor: StoneColor.cyan);
+        final remote = Player.create(nickname: 'Remote', avatarColor: '#4C4C4C')
+          .copyWith(isHost: false, stoneColor: StoneColor.magenta);
+        
+        bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
+        await bloc.stream.firstWhere((state) => state is MarkingState);
+        
+        bloc.add(const OpponentDisconnectedEvent());
+        final state = await bloc.stream.firstWhere((state) => state is GameOverState) as GameOverState;
+        
+        expect(state.result.winner?.id, equals(local.id));
+        expect(state.result.loser?.id, equals(remote.id));
+        expect(state.result.reason, equals(GameEndReason.disconnect));
+      });
     });
   });
 }

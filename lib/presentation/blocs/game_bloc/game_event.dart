@@ -170,3 +170,23 @@ class InitiateGuessPhaseEvent extends GameEvent {
 class StartNextTurnEvent extends GameEvent {
   const StartNextTurnEvent();
 }
+
+/// Request rematch after game over
+class RequestRematchEvent extends GameEvent {
+  const RequestRematchEvent();
+}
+
+/// Opponent requested rematch
+class OpponentRequestedRematchEvent extends GameEvent {
+  const OpponentRequestedRematchEvent();
+}
+
+/// Accept opponent's rematch request
+class AcceptRematchEvent extends GameEvent {
+  const AcceptRematchEvent();
+}
+
+/// Decline opponent's rematch request
+class DeclineRematchEvent extends GameEvent {
+  const DeclineRematchEvent();
+}

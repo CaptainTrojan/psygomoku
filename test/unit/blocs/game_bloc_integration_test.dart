@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bloc_test/bloc_test.dart';
 import 'package:psygomoku/presentation/blocs/game_bloc/game_bloc.dart';
 import 'package:psygomoku/presentation/blocs/game_bloc/game_event.dart';
 import 'package:psygomoku/presentation/blocs/game_bloc/game_state.dart';
 import 'package:psygomoku/domain/entities/player.dart';
 import 'package:psygomoku/domain/entities/position.dart';
 import 'package:psygomoku/domain/entities/game_config.dart';
+import 'package:psygomoku/domain/entities/game_result.dart';
 import 'package:psygomoku/domain/entities/stone.dart';
 import 'package:psygomoku/infrastructure/transport/i_game_transport.dart'
     as transport_pkg;
@@ -122,6 +122,12 @@ void _routeTransportToBloc(
         bloc.add(OpponentForfeitedEvent(
           timestamp: DateTime.parse(data['timestamp'] as String),
         ));
+        break;
+      case 'rematch_request':
+        bloc.add(const OpponentRequestedRematchEvent());
+        break;
+      case 'disconnect':
+        bloc.add(const OpponentDisconnectedEvent());
         break;
     }
   });
@@ -590,4 +596,171 @@ void main() {
     final hostResult = (h.hostBloc.state as GameOverState);
     expect(hostResult.didLocalPlayerWin, isFalse,
         reason: 'Host should have lost');
-  });}
+  });
+
+  // ---------------------------------------------------------------------------
+  //  Rematch Flow Tests
+  // ---------------------------------------------------------------------------
+
+  group('Rematch Flow', () {
+    test('rematch request updates GameOverState with localWantsRematch', () async {
+      // Setup: Get to GameOverState via forfeit
+      h.startGame();
+      await h.pumpEvents();
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Both should be in GameOverState
+      expect(h.hostBloc.state, isA<GameOverState>());
+      expect(h.guestBloc.state, isA<GameOverState>());
+
+      // Host requests rematch
+      h.hostBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+
+      // Host's state should show localWantsRematch = true
+      final hostState = h.hostBloc.state as GameOverState;
+      expect(hostState.localWantsRematch, isTrue);
+      expect(hostState.remoteWantsRematch, isFalse);
+    });
+
+    test('rematch request from opponent updates remoteWantsRematch', () async {
+      // Setup: Get to GameOverState via forfeit
+      h.startGame();
+      await h.pumpEvents();
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Both should be in GameOverState
+      expect(h.hostBloc.state, isA<GameOverState>());
+      expect(h.guestBloc.state, isA<GameOverState>());
+
+      // Host requests rematch (this sends to guest)
+      h.hostBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+
+      // Guest's state should show remoteWantsRematch = true (from host)
+      final guestState = h.guestBloc.state as GameOverState;
+      expect(guestState.localWantsRematch, isFalse);
+      expect(guestState.remoteWantsRematch, isTrue);
+    });
+
+    test('game restarts when both players want rematch', () async {
+      // Setup: Get to GameOverState via forfeit
+      h.startGame();
+      await h.pumpEvents();
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Both should be in GameOverState
+      expect(h.hostBloc.state, isA<GameOverState>());
+      expect(h.guestBloc.state, isA<GameOverState>());
+
+      // Host requests rematch first
+      h.hostBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+
+      // Guest also requests rematch (accepts)
+      h.guestBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+
+      // Game should have restarted - both should be in active states
+      expect(h.hostBloc.state, isA<GameActiveState>(),
+          reason: 'Host should be in active state after mutual rematch');
+      expect(h.guestBloc.state, isA<GameActiveState>(),
+          reason: 'Guest should be in active state after mutual rematch');
+    });
+
+    test('rematch swaps starting player', () async {
+      // Setup: Get to GameOverState via forfeit
+      h.startGame();
+      await h.pumpEvents();
+
+      // In first game, host starts (MarkingState)
+      expect(h.hostBloc.state, isA<MarkingState>());
+      expect(h.guestBloc.state, isA<OpponentMarkingState>());
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Both request rematch
+      h.hostBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+      h.guestBloc.add(const RequestRematchEvent());
+      await h.pumpEvents();
+
+      // In rematch, guest should start (host is OpponentMarking, guest is Marking)
+      expect(h.hostBloc.state, isA<OpponentMarkingState>(),
+          reason: 'Host should wait for guest to mark in rematch');
+      expect(h.guestBloc.state, isA<MarkingState>(),
+          reason: 'Guest should start marking in rematch');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  //  Disconnect Flow Tests
+  // ---------------------------------------------------------------------------
+
+  group('Disconnect Flow', () {
+    test('opponent disconnect during game ends game with disconnect reason', () async {
+      h.startGame();
+      await h.pumpEvents();
+
+      // Game should be active
+      expect(h.hostBloc.state, isA<GameActiveState>());
+      expect(h.guestBloc.state, isA<GameActiveState>());
+
+      // Host disconnects
+      h.hostBloc.add(const OpponentDisconnectedEvent());
+      await h.pumpEvents();
+
+      // Host should see GameOverState with disconnect reason
+      expect(h.hostBloc.state, isA<GameOverState>());
+      final hostState = h.hostBloc.state as GameOverState;
+      expect(hostState.result.reason, equals(GameEndReason.disconnect));
+    });
+
+    test('opponent disconnect during GameOverState keeps same state', () async {
+      h.startGame();
+      await h.pumpEvents();
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Both in GameOverState
+      expect(h.hostBloc.state, isA<GameOverState>());
+      expect(h.guestBloc.state, isA<GameOverState>());
+
+      // Host then disconnects (simulated by opponent disconnect event)
+      h.guestBloc.add(const OpponentDisconnectedEvent());
+      await h.pumpEvents();
+
+      // Guest should still be in GameOverState (state doesn't change for already-over games)
+      expect(h.guestBloc.state, isA<GameOverState>());
+    });
+
+    test('forfeit sends message to opponent', () async {
+      h.startGame();
+      await h.pumpEvents();
+
+      // Host forfeits
+      h.hostBloc.add(const ForfeitEvent());
+      await h.pumpEvents();
+
+      // Guest should have received the forfeit and be in GameOverState
+      expect(h.guestBloc.state, isA<GameOverState>());
+      final guestState = h.guestBloc.state as GameOverState;
+      expect(guestState.result.reason, equals(GameEndReason.forfeit));
+      expect(guestState.didLocalPlayerWin, isTrue,
+          reason: 'Guest should win when host forfeits');
+    });
+  });
+}

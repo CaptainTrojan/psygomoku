@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/board.dart';
 import '../../domain/entities/position.dart';
+import '../../domain/entities/stone.dart';
 import 'stone_widget.dart';
 import 'selection_indicator_widget.dart';
 
@@ -12,7 +13,10 @@ class GameBoardWidget extends StatelessWidget {
   final VoidCallback? onConfirmSelection;
   final Position? guessMarkerPosition; // Position where guess marker should be shown
   final Color? guessMarkerColor; // Color of the guess marker
-  final Position? highlightPosition; // Recently placed stone to highlight
+  final Position? previewMarkedPosition; // Position of own mark preview (gray, smaller)
+  final Position? lastPlayedPosition; // Last stone position for border
+  final StoneColor? localPlayerColor;
+  final StoneColor? remotePlayerColor;
 
   const GameBoardWidget({
     super.key,
@@ -22,7 +26,10 @@ class GameBoardWidget extends StatelessWidget {
     this.onConfirmSelection,
     this.guessMarkerPosition,
     this.guessMarkerColor,
-    this.highlightPosition,
+    this.previewMarkedPosition,
+    this.lastPlayedPosition,
+    this.localPlayerColor,
+    this.remotePlayerColor,
   });
 
   @override
@@ -98,22 +105,31 @@ class GameBoardWidget extends StatelessWidget {
                       if (selectedPosition == position && stone == null)
                         const SelectionIndicatorWidget(),
 
+                      // Preview mark (gray, smaller stone for marker's own mark)
+                      if (previewMarkedPosition == position && stone == null)
+                        Padding(
+                          padding: const EdgeInsets.all(8.0), // More padding = smaller
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey.withOpacity(0.3),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+
                       // Stone (if placed)
                       if (stone != null)
                         Padding(
                           padding: const EdgeInsets.all(4.0),
-                          child: StoneWidget(stone: stone),
-                        ),
-                      
-                      // Highlight ring for newly placed stone
-                      if (highlightPosition == position && stone != null)
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.6),
-                              width: 2,
-                            ),
+                          child: StoneWidget(
+                            stone: stone,
+                            isLastPlayed: lastPlayedPosition == position,
+                            localPlayerColor: localPlayerColor,
+                            remotePlayerColor: remotePlayerColor,
                           ),
                         ),
                       

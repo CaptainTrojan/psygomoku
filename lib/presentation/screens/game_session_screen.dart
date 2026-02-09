@@ -204,6 +204,9 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
       case 'disconnect':
         _gameBloc.add(const OpponentDisconnectedEvent());
         break;
+      case 'rematch_request':
+        _gameBloc.add(const OpponentRequestedRematchEvent());
+        break;
       default:
         break;
     }
