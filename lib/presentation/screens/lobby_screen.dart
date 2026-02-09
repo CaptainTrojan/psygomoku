@@ -1,32 +1,27 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../infrastructure/transport/i_game_transport.dart' as transport_pkg;
+import '../../infrastructure/persistence/profile_repository.dart';
 import '../blocs/connection_bloc/connection_bloc.dart';
 import '../blocs/connection_bloc/connection_event.dart';
 import '../blocs/connection_bloc/connection_state.dart' as bloc_state;
-import '../blocs/chat_bloc/chat_bloc.dart';
-import '../blocs/chat_bloc/chat_event.dart';
-import 'chat_screen.dart';
+import 'game_session_screen.dart';
 
 /// Lobby screen for hosting or joining a game
 class LobbyScreen extends StatefulWidget {
-  const LobbyScreen({super.key});
+  final ProfileRepository profileRepository;
+
+  const LobbyScreen({super.key, required this.profileRepository});
 
   @override
   State<LobbyScreen> createState() => _LobbyScreenState();
 }
 
 class _LobbyScreenState extends State<LobbyScreen> {
-  final _linkController = TextEditingController();
-  bool _isScanning = false;
-
   @override
   void dispose() {
-    _linkController.dispose();
     super.dispose();
   }
 
@@ -53,28 +48,17 @@ class _LobbyScreenState extends State<LobbyScreen> {
             final transport = connectionBloc.transport;
             
             if (transport != null) {
-              // Listen for chat messages from transport
-              transport.onMessage.listen((data) {
-                if (data['type'] == 'chat') {
-                  // This will be handled by ChatBloc once we navigate
-                }
-              });
-
-              // Navigate to chat screen with ChatBloc
+              // Navigate to game session screen
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
                   builder: (_) => MultiBlocProvider(
                     providers: [
                       BlocProvider.value(value: connectionBloc),
-                      BlocProvider(
-                        create: (_) => ChatBloc(transport)..stream.listen((chatState) {
-                          // Listen for incoming chat messages from transport
-                        }),
-                      ),
                     ],
-                    child: _ChatMessageListener(
+                    child: GameSessionScreen(
                       transport: transport,
-                      child: const ChatScreen(),
+                      isHost: connectionBloc.isHost,
+                      profileRepository: widget.profileRepository,
                     ),
                   ),
                 ),
@@ -190,7 +174,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
                     MaterialPageRoute<void>(
                       builder: (_) => BlocProvider.value(
                         value: context.read<ConnectionBloc>(),
-                        child: const _JoinGameScreen(),
+                        child: _JoinGameScreen(
+                          profileRepository: widget.profileRepository,
+                        ),
                       ),
                     ),
                   );
@@ -544,106 +530,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
-  Widget _buildJoinOptionsView(BuildContext context) {
-    return Column(
-      children: [
-        // Camera Scanner (Top Half)
-        Expanded(
-          child: Container(
-            color: Colors.black,
-            child: _isScanning
-                ? MobileScanner(
-                    onDetect: (capture) {
-                      final List<Barcode> barcodes = capture.barcodes;
-                      if (barcodes.isNotEmpty) {
-                        final code = barcodes.first.rawValue;
-                        if (code != null && code.isNotEmpty) {
-                          setState(() => _isScanning = false);
-                          _joinGame(code);
-                        }
-                      }
-                    },
-                  )
-                : Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() => _isScanning = true);
-                      },
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('START SCANNING'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00E5FF),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-
-        // Paste Link (Bottom Half)
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'OR PASTE LINK',
-                  style: TextStyle(
-                    color: Color(0xFFFF4081),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _linkController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Paste signaling data here...',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF333333)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF333333)),
-                    ),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    final link = _linkController.text.trim();
-                    if (link.isNotEmpty) {
-                      _joinGame(link);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF4081),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                  ),
-                  child: const Text('JOIN GAME'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildJoiningView() {
     return _buildLoadingView('Connecting to opponent...');
@@ -708,83 +594,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
-  void _joinGame(String signalData) {
-    context.read<ConnectionBloc>().add(JoinGameEvent(signalData));
-  }
-}
-
-/// Widget that listens to transport messages and forwards chat messages to ChatBloc
-class _ChatMessageListener extends StatefulWidget {
-  const _ChatMessageListener({
-    required this.transport,
-    required this.child,
-  });
-
-  final transport_pkg.IGameTransport transport;
-  final Widget child;
-
-  @override
-  State<_ChatMessageListener> createState() => _ChatMessageListenerState();
-}
-
-class _ChatMessageListenerState extends State<_ChatMessageListener> {
-  StreamSubscription<Map<String, dynamic>>? _messageSubscription;
-  StreamSubscription<void>? _disconnectSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // Listen for chat messages
-    _messageSubscription = widget.transport.onMessage.listen((data) {
-      if (data['type'] == 'chat' && mounted) {
-        final message = data['text'] as String?;
-        final timestampStr = data['timestamp'] as String?;
-        
-        if (message != null && timestampStr != null) {
-          final timestamp = DateTime.tryParse(timestampStr) ?? DateTime.now();
-          context.read<ChatBloc>().add(
-            ReceiveChatMessageEvent(message, timestamp),
-          );
-        }
-      }
-    });
-    
-    // Listen for opponent disconnect
-    _disconnectSubscription = widget.transport.onDisconnect.listen((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Opponent disconnected'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        // Auto-disconnect after a short delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            context.read<ConnectionBloc>().add(const DisconnectEvent());
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _messageSubscription?.cancel();
-    _disconnectSubscription?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 /// Separate screen for joining a game
 class _JoinGameScreen extends StatefulWidget {
-  const _JoinGameScreen();
+  final ProfileRepository profileRepository;
+
+  const _JoinGameScreen({required this.profileRepository});
 
   @override
   State<_JoinGameScreen> createState() => _JoinGameScreenState();
@@ -825,23 +641,20 @@ class _JoinGameScreenState extends State<_JoinGameScreen> {
         },
         listener: (context, state) {
           if (state is bloc_state.ConnectedState) {
-            // Connection established, navigate to chat screen
             final connectionBloc = context.read<ConnectionBloc>();
             final transport = connectionBloc.transport;
-            
+
             if (transport != null) {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
                   builder: (_) => MultiBlocProvider(
                     providers: [
                       BlocProvider.value(value: connectionBloc),
-                      BlocProvider(
-                        create: (_) => ChatBloc(transport),
-                      ),
                     ],
-                    child: _ChatMessageListener(
+                    child: GameSessionScreen(
                       transport: transport,
-                      child: const ChatScreen(),
+                      isHost: connectionBloc.isHost,
+                      profileRepository: widget.profileRepository,
                     ),
                   ),
                 ),

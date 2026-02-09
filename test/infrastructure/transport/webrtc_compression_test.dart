@@ -3,12 +3,6 @@ import 'package:psygomoku/infrastructure/transport/webrtc_transport.dart';
 
 void main() {
   group('WebRTC Signal Compression', () {
-    late WebRTCTransport transport;
-
-    setUp(() {
-      transport = WebRTCTransport(isHost: true);
-    });
-
     test('compresses and decompresses signal data correctly', () {
       // Arrange - Create realistic SDP-like data
       final originalData = '''

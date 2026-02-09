@@ -23,18 +23,21 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   final _log = AppLogger.getLogger(LogModule.connection);
   
   transport_pkg.IGameTransport? _transport;
+  bool _isHost = false;
   StreamSubscription<Map<String, dynamic>>? _messageSubscription;
   StreamSubscription<void>? _disconnectSubscription;
   StreamSubscription<transport_pkg.ConnectionState>? _stateSubscription;
 
   /// Expose transport for ChatBloc
   transport_pkg.IGameTransport? get transport => _transport;
+  bool get isHost => _isHost;
 
   Future<void> _onHostGame(
     HostGameEvent event,
     Emitter<ConnectionState> emit,
   ) async {
     try {
+      _isHost = true;
       _log.d('HostGameEvent received, starting host flow...');
       // Create host transport
       final transport = WebRTCTransport(isHost: true);
@@ -60,6 +63,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     Emitter<ConnectionState> emit,
   ) async {
     try {
+      _isHost = false;
       _log.d('JoinGameEvent received, starting join flow...');
       emit(const JoiningState());
 

@@ -3,15 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:psygomoku/presentation/blocs/connection_bloc/connection_bloc.dart';
 import 'package:psygomoku/presentation/screens/home_screen.dart';
+import 'package:psygomoku/infrastructure/persistence/profile_repository.dart';
+import 'package:psygomoku/domain/entities/player.dart';
 
 void main() {
   group('HomeScreen', () {
     testWidgets('displays app title and game modes', (WidgetTester tester) async {
+      final profileRepository = _TestProfileRepository();
       await tester.pumpWidget(
         MaterialApp(
           home: BlocProvider(
             create: (_) => ConnectionBloc(),
-            child: const HomeScreen(),
+            child: HomeScreen(profileRepository: profileRepository),
           ),
         ),
       );
@@ -36,11 +39,12 @@ void main() {
     });
 
     testWidgets('Online P2P button navigates to lobby', (WidgetTester tester) async {
+      final profileRepository = _TestProfileRepository();
       await tester.pumpWidget(
         MaterialApp(
           home: BlocProvider(
             create: (_) => ConnectionBloc(),
-            child: const HomeScreen(),
+            child: HomeScreen(profileRepository: profileRepository),
           ),
         ),
       );
@@ -54,11 +58,12 @@ void main() {
     });
 
     testWidgets('Nearby P2P button shows coming soon message', (WidgetTester tester) async {
+      final profileRepository = _TestProfileRepository();
       await tester.pumpWidget(
         MaterialApp(
           home: BlocProvider(
             create: (_) => ConnectionBloc(),
-            child: const HomeScreen(),
+            child: HomeScreen(profileRepository: profileRepository),
           ),
         ),
       );
@@ -72,11 +77,12 @@ void main() {
     });
 
     testWidgets('Profile icon shows placeholder message', (WidgetTester tester) async {
+      final profileRepository = _TestProfileRepository();
       await tester.pumpWidget(
         MaterialApp(
           home: BlocProvider(
             create: (_) => ConnectionBloc(),
-            child: const HomeScreen(),
+            child: HomeScreen(profileRepository: profileRepository),
           ),
         ),
       );
@@ -85,8 +91,22 @@ void main() {
       await tester.tap(find.byIcon(Icons.person));
       await tester.pump();
 
-      // Verify snackbar message
-      expect(find.text('Profile screen coming in Phase 5!'), findsOneWidget);
+      // Verify navigation to Profile screen
+      await tester.pumpAndSettle();
+      expect(find.text('Profile'), findsOneWidget);
     });
   });
+}
+
+class _TestProfileRepository extends ProfileRepository {
+  @override
+  Player? getLocalPlayer() {
+    return Player.create(nickname: 'TestPlayer', avatarColor: '#6B5B95');
+  }
+
+  @override
+  List<Map<String, dynamic>> getMatchHistory() => [];
+
+  @override
+  Future<void> initialize() async {}
 }

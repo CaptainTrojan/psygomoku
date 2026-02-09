@@ -6,16 +6,22 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:psygomoku/infrastructure/persistence/profile_repository.dart';
 import 'package:psygomoku/main.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const PsygomokuApp());
+    final profileRepository = _TestProfileRepository();
+    await tester.pumpWidget(PsygomokuApp(profileRepository: profileRepository));
 
     // Verify that the home screen loads with title.
     expect(find.text('PSYGOMOKU'), findsOneWidget);
     expect(find.text('ONLINE P2P'), findsOneWidget);
   });
+}
+
+class _TestProfileRepository extends ProfileRepository {
+  @override
+  Future<void> initialize() async {}
 }

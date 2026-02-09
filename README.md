@@ -2,7 +2,56 @@
 
 **Serverless P2P Gomoku with Cryptographic Fog of War**
 
-A strategy board game based on Gomoku (5-in-a-row) with a unique "Mental Poker" twist. Players place pieces secretly using cryptographic commitments—guess your opponent's move correctly to block them!
+A strategy board game based on Gomoku (5-in-a-row) with a unique "Mental Poker" twist. Players place pieces secretly using cryptographic commitments—guess your opponent's move correctly to steal their turn!
+
+## 🎮 Game Rules
+
+### The Board
+- **Grid:** 15×15 intersection points
+- **Pieces:** Cyan (Player 1) and Magenta (Player 2) glowing stones
+- **Win Condition:** 5 or more stones of the same color in a continuous row, column, or diagonal
+
+### The Psychic Turn Protocol
+
+Each turn is a cryptographic handshake that creates "fog of war":
+
+1. **MARK Phase** (Active Player)
+   - Player A secretly selects coordinates `(x, y)`
+   - System generates random `Salt`
+   - System computes `Hash = SHA256(x + y + Salt)`
+   - System sends only `Hash` to Player B
+   
+2. **GUESS Phase** (Passive Player)
+   - Player B tries to predict the marked spot `(gx, gy)`
+   - System sends guess in plaintext to Player A
+   
+3. **REVEAL Phase** (Active Player)
+   - Player A reveals `(x, y, Salt)` to Player B
+   
+4. **VERIFY Phase** (Passive Player)
+   - Player B computes `TestHash = SHA256(x + y + Salt)`
+   - If `TestHash ≠ Hash` → Player A **auto-forfeits** (cheating detected)
+   - If guess was **correct** `(gx, gy) == (x, y)`:
+     - Player B gets a stone at that position (intercepted!)
+     - Player A marks again (turn doesn't switch)
+   - If guess was **wrong**:
+     - Player A gets a stone at marked position
+     - Turn switches to Player B
+
+### Move Confirmation
+- **Two-Step Selection:** First tap selects, second tap confirms
+- Tapping a different spot cancels the previous selection
+- Only the active player (marker or guesser) can select positions
+
+### Timers & Anti-Cheat
+- Each player has a countdown timer
+- Timer runs for the **active player** (marker or guesser)
+- Opponent validates timer consistency (±2 seconds tolerance)
+- Timer cheat detection triggers auto-forfeit
+
+### Visual Feedback
+- **Correct Guess:** Stone appears in guesser's color with marker's border (stolen piece effect)
+- **Wrong Guess:** Stone in marker's color + small X at guess location in guesser's color
 
 ## 🏗️ Architecture
 
@@ -84,4 +133,4 @@ Private project - Not for distribution
 
 ---
 
-**Status:** 🚧 Phase 0 - In Development
+**Status:** 🚧 Implementing Core Game Logic (Phase 2-3)

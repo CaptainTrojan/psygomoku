@@ -7,7 +7,9 @@ import 'package:intl/intl.dart';
 
 /// Chat widget for P2P communication
 class ChatWidget extends StatefulWidget {
-  const ChatWidget({super.key});
+  final bool compact;
+
+  const ChatWidget({super.key, this.compact = false});
 
   @override
   State<ChatWidget> createState() => _ChatWidgetState();
@@ -47,6 +49,13 @@ class _ChatWidgetState extends State<ChatWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final headerPadding = widget.compact ? 8.0 : 16.0;
+    final messagePadding = widget.compact ? 10.0 : 16.0;
+    final inputPadding = widget.compact ? 8.0 : 12.0;
+    final headerFontSize = widget.compact ? 13.0 : 16.0;
+    final messageFontSize = widget.compact ? 12.0 : 14.0;
+    final timeFontSize = widget.compact ? 9.0 : 10.0;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
@@ -57,21 +66,21 @@ class _ChatWidgetState extends State<ChatWidget> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(headerPadding),
             decoration: const BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Color(0xFF333333)),
               ),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.chat, color: Color(0xFF00E5FF), size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.chat, color: Color(0xFF00E5FF), size: 20),
+                const SizedBox(width: 8),
                 Text(
                   'Chat',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: headerFontSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -98,11 +107,15 @@ class _ChatWidgetState extends State<ChatWidget> {
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(messagePadding),
                   itemCount: state.messages.length,
                   itemBuilder: (context, index) {
                     final message = state.messages[index];
-                    return _ChatBubble(message: message);
+                    return _ChatBubble(
+                      message: message,
+                      messageFontSize: messageFontSize,
+                      timeFontSize: timeFontSize,
+                    );
                   },
                 );
               },
@@ -111,7 +124,7 @@ class _ChatWidgetState extends State<ChatWidget> {
 
           // Input field
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(inputPadding),
             decoration: const BoxDecoration(
               border: Border(
                 top: BorderSide(color: Color(0xFF333333)),
@@ -134,7 +147,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 10,
                       ),
                     ),
                     maxLines: 1,
@@ -147,7 +160,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
                   color: const Color(0xFF00E5FF),
-                  iconSize: 24,
+                  iconSize: widget.compact ? 20 : 24,
                 ),
               ],
             ),
@@ -159,9 +172,15 @@ class _ChatWidgetState extends State<ChatWidget> {
 }
 
 class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message});
+  const _ChatBubble({
+    required this.message,
+    required this.messageFontSize,
+    required this.timeFontSize,
+  });
 
   final ChatMessage message;
+  final double messageFontSize;
+  final double timeFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +211,9 @@ class _ChatBubble extends StatelessWidget {
             children: [
               Text(
                 message.text,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: messageFontSize,
                 ),
               ),
               const SizedBox(height: 4),
@@ -202,7 +221,7 @@ class _ChatBubble extends StatelessWidget {
                 timeFormat.format(message.timestamp),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 10,
+                  fontSize: timeFontSize,
                 ),
               ),
             ],

@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'presentation/blocs/connection_bloc/connection_bloc.dart';
 import 'presentation/screens/home_screen.dart';
+import 'infrastructure/persistence/profile_repository.dart';
 
-void main() {
-  runApp(const PsygomokuApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  final profileRepository = ProfileRepository();
+  await profileRepository.initialize();
+
+  runApp(PsygomokuApp(profileRepository: profileRepository));
 }
 
 class PsygomokuApp extends StatelessWidget {
-  const PsygomokuApp({super.key});
+  final ProfileRepository profileRepository;
+
+  const PsygomokuApp({super.key, required this.profileRepository});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +34,7 @@ class PsygomokuApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const HomeScreen(),
+        home: HomeScreen(profileRepository: profileRepository),
       ),
     );
   }
