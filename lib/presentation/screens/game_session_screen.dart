@@ -196,6 +196,14 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
           timestamp: _parseTimestamp(data['timestamp']),
         ));
         break;
+      case 'forfeit':
+        _gameBloc.add(OpponentForfeitedEvent(
+          timestamp: _parseTimestamp(data['timestamp']),
+        ));
+        break;
+      case 'disconnect':
+        _gameBloc.add(const OpponentDisconnectedEvent());
+        break;
       default:
         break;
     }
@@ -232,6 +240,16 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
   }
 
   void _handleDisconnect(BuildContext context) {
+    // Send disconnect message to opponent (best effort)
+    widget.transport.send({
+      'type': 'disconnect',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
+    // Notify game bloc about disconnect
+    _gameBloc.add(const OpponentDisconnectedEvent());
+    
+    // Clean up connection
     context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
     Navigator.of(context).popUntil((route) => route.isFirst);
   }

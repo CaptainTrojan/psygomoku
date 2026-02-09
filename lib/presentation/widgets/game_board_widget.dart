@@ -10,6 +10,9 @@ class GameBoardWidget extends StatelessWidget {
   final void Function(Position)? onPositionTapped;
   final Position? selectedPosition;
   final VoidCallback? onConfirmSelection;
+  final Position? guessMarkerPosition; // Position where guess marker should be shown
+  final Color? guessMarkerColor; // Color of the guess marker
+  final Position? highlightPosition; // Recently placed stone to highlight
 
   const GameBoardWidget({
     super.key,
@@ -17,6 +20,9 @@ class GameBoardWidget extends StatelessWidget {
     this.onPositionTapped,
     this.selectedPosition,
     this.onConfirmSelection,
+    this.guessMarkerPosition,
+    this.guessMarkerColor,
+    this.highlightPosition,
   });
 
   @override
@@ -97,6 +103,34 @@ class GameBoardWidget extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.all(4.0),
                           child: StoneWidget(stone: stone),
+                        ),
+                      
+                      // Highlight ring for newly placed stone
+                      if (highlightPosition == position && stone != null)
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.6),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      
+                      // Guess marker (cross/X) - shows even over stones
+                      if (guessMarkerPosition == position)
+                        Center(
+                          child: Icon(
+                            Icons.close,
+                            size: 32,
+                            color: (guessMarkerColor ?? Colors.white).withOpacity(0.9),
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.8),
+                                blurRadius: 3,
+                              ),
+                            ],
+                          ),
                         ),
 
                       // Hover effect (for desktop)

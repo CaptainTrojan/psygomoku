@@ -126,6 +126,16 @@ class ForfeitEvent extends GameEvent {
   const ForfeitEvent();
 }
 
+/// Opponent forfeited the game
+class OpponentForfeitedEvent extends GameEvent {
+  final DateTime timestamp;
+
+  const OpponentForfeitedEvent({required this.timestamp});
+
+  @override
+  List<Object?> get props => [timestamp];
+}
+
 /// Connection to opponent lost
 class DisconnectEvent extends GameEvent {
   final String reason;
@@ -134,6 +144,11 @@ class DisconnectEvent extends GameEvent {
 
   @override
   List<Object?> get props => [reason];
+}
+
+/// Opponent disconnected
+class OpponentDisconnectedEvent extends GameEvent {
+  const OpponentDisconnectedEvent();
 }
 
 /// Cheat detected (hash mismatch or timer violation)

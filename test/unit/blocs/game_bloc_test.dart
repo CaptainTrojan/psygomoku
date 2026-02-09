@@ -62,7 +62,7 @@ void main() {
     });
 
     blocTest<GameBloc, GameState>(
-      'guest can mark then guess after opponent marks',
+      'guest receives opponent mark and enters GuessingState',
       build: () => bloc,
       act: (bloc) {
         final local = Player.create(nickname: 'Guest', avatarColor: '#6B5B95')
@@ -72,13 +72,11 @@ void main() {
         bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
         bloc.add(OpponentMarkedEvent(hash: 'hash', timestamp: DateTime.now()));
         bloc.add(SelectPositionEvent(Position(5, 5)));
-        bloc.add(const ConfirmMarkEvent());
       },
       expect: () => [
         isA<OpponentMarkingState>(),
-        isA<MarkingState>(),
-        isA<MarkingState>(),
-        isA<GuessingState>(),
+        isA<GuessingState>(),  // guest goes directly to guessing
+        isA<GuessingState>(),  // with selected position
       ],
     );
 
@@ -89,9 +87,8 @@ void main() {
           .copyWith(isHost: true, stoneColor: StoneColor.cyan);
       bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
       bloc.add(OpponentMarkedEvent(hash: 'hash', timestamp: DateTime.now()));
-      bloc.add(SelectPositionEvent(Position(2, 2)));
-      bloc.add(const ConfirmMarkEvent());
 
+      // Guest is in GuessingState after opponent marks
       await bloc.stream.firstWhere((state) => state is GuessingState);
 
       bloc.add(SelectPositionEvent(Position(4, 4)));
@@ -114,30 +111,29 @@ void main() {
 
       bloc.add(StartGameEvent(localPlayer: local, remotePlayer: remote, config: GameConfig.casual()));
       bloc.add(OpponentMarkedEvent(hash: commitment.hash, timestamp: DateTime.now()));
-      bloc.add(SelectPositionEvent(Position(1, 1)));
-      bloc.add(const ConfirmMarkEvent());
 
+      // Guest is in GuessingState after opponent marks
       await bloc.stream.firstWhere((state) => state is GuessingState);
 
       bloc.add(SelectPositionEvent(Position(7, 7)));
       bloc.add(const ConfirmGuessEvent());
 
-      await bloc.stream.firstWhere((state) => state is OpponentGuessingState);
+      // After guessing, guest waits in OpponentRevealingState for the reveal
+      await bloc.stream.firstWhere((state) => state is OpponentRevealingState);
 
-      bloc.add(OpponentGuessedEvent(guessedPosition: Position(1, 1), timestamp: DateTime.now()));
-
-      await bloc.stream.firstWhere((state) => state is RevealingState);
-
+      // Host reveals
       bloc.add(OpponentRevealedEvent(
         revealedPosition: opponentPosition,
         salt: commitment.salt,
         timestamp: DateTime.now(),
       ));
 
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // After reveal: guest guessed correctly → host (marker) lost → host marks again
+      // So guest should be in OpponentMarkingState (waiting for host to mark)
+      await bloc.stream.firstWhere((state) => state is OpponentMarkingState);
 
       final currentState = bloc.state;
-      expect(currentState, isA<GameActiveState>());
+      expect(currentState, isA<OpponentMarkingState>());
       if (currentState is GameActiveState) {
         expect(currentState.board.stones.isNotEmpty, isTrue);
       }

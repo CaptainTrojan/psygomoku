@@ -54,6 +54,28 @@ class GameBoardScreen extends StatelessWidget {
             final board = state is GameActiveState
                 ? state.board
                 : (state as GameOverState).finalBoard;
+            final moveHistory = state is GameActiveState
+                ? state.moveHistory
+                : (state as GameOverState).moveHistory;
+
+            // Get last wrong guess position for showing cross marker
+            final lastMove = moveHistory.isNotEmpty ? moveHistory.last : null;
+            final wrongGuessPosition = (lastMove?.wasGuessCorrect == false)
+                ? lastMove!.guess
+                : null;
+            // Determine guesser color: if marker was local, guesser was remote
+            final wrongGuessColor = (lastMove?.wasGuessCorrect == false && lastMove != null)
+                ? (lastMove.markerColor == localPlayer.stoneColor
+                    ? remotePlayer.stoneColor?.color
+                    : localPlayer.stoneColor?.color)
+                : null;
+            
+            // Highlight last placed stone (clears on next selection)
+            final highlightPosition = (state is GameActiveState && 
+                                       state.selectedPosition == null && 
+                                       lastMove != null)
+                ? lastMove.markedPosition
+                : null;
 
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -111,6 +133,13 @@ class GameBoardScreen extends StatelessWidget {
                                 selectedPosition: state is GameActiveState
                                     ? state.selectedPosition
                                     : null,
+                                guessMarkerPosition: state is OpponentRevealingState
+                                    ? state.ourGuess
+                                    : wrongGuessPosition,
+                                guessMarkerColor: state is OpponentRevealingState
+                                    ? localPlayer.stoneColor?.color
+                                    : wrongGuessColor,
+                                highlightPosition: highlightPosition,
                                 onConfirmSelection: state is GameActiveState
                                     ? () {
                                         if (state is MarkingState) {
@@ -257,7 +286,7 @@ class GameBoardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                state.result.detailedDescription,
+                state.result.getDetailedDescription(state.localPlayer),
                 style: const TextStyle(color: Colors.white54, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
@@ -266,10 +295,29 @@ class GameBoardScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
+                // Send disconnect notification
+                context.read<GameBloc>().add(const DisconnectEvent());
                 Navigator.of(dialogContext).pop();
                 Navigator.of(context).pop(); // Return to lobby/home
               },
               child: const Text('Back to Lobby'),
+            ),
+            FilledButton(
+              onPressed: () {
+                // TODO: Implement rematch - for now just notify user
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Rematch feature coming soon!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF00E5FF),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Play Again'),
             ),
           ],
         ),

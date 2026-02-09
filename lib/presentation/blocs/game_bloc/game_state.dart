@@ -226,7 +226,52 @@ class OpponentGuessingState extends GameActiveState {
   }
 }
 
-/// Revealing phase - both players reveal and verify
+/// Waiting for opponent to reveal their marked position (guesser side)
+class OpponentRevealingState extends GameActiveState {
+  final Position ourGuess;
+  final String opponentHash;
+
+  const OpponentRevealingState({
+    required super.localPlayer,
+    required super.remotePlayer,
+    required super.board,
+    required super.config,
+    required super.moveHistory,
+    required this.ourGuess,
+    required this.opponentHash,
+    super.remainingSeconds,
+  });
+
+  @override
+  bool get isLocalPlayerTurn => false;
+
+  @override
+  List<Object?> get props => [...super.props, ourGuess, opponentHash];
+
+  OpponentRevealingState copyWith({
+    Player? localPlayer,
+    Player? remotePlayer,
+    Board? board,
+    GameConfig? config,
+    List<Move>? moveHistory,
+    Position? ourGuess,
+    String? opponentHash,
+    int? remainingSeconds,
+  }) {
+    return OpponentRevealingState(
+      localPlayer: localPlayer ?? this.localPlayer,
+      remotePlayer: remotePlayer ?? this.remotePlayer,
+      board: board ?? this.board,
+      config: config ?? this.config,
+      moveHistory: moveHistory ?? this.moveHistory,
+      ourGuess: ourGuess ?? this.ourGuess,
+      opponentHash: opponentHash ?? this.opponentHash,
+      remainingSeconds: remainingSeconds ?? this.remainingSeconds,
+    );
+  }
+}
+
+/// Revealing phase - marker reveals their position
 class RevealingState extends GameActiveState {
   final Position ourMarkedPosition;
   final String ourSalt;

@@ -83,9 +83,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
           } else if (state is bloc_state.JoiningWaitingForHostState) {
             return _buildJoinerShowAnswerView(context, state.answerData);
           } else if (state is bloc_state.ConnectedState) {
-            // Connected state is handled by listener which navigates to chat
-            // Show loading while navigation happens
-            return _buildLoadingView('Connection established! Opening chat...');
+            // Connected state is handled by listener which navigates
+            // Just show mode selection since listener handles navigation
+            return _buildModeSelectionView(context);
           } else if (state is bloc_state.ConnectionErrorState) {
             return _buildErrorView(context, state.error);
           } else {
@@ -261,7 +261,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Offer copied! Share with joiner.'),
-                    backgroundColor: Color(0xFF4CAF50),
+                    backgroundColor: Color(0xFF00E5FF),
                   ),
                 );
               },
@@ -290,8 +290,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               icon: const Icon(Icons.arrow_forward),
               label: const Text('SHARED - NEXT'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF00E5FF),
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
@@ -434,7 +434,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             const Text(
               'Answer Generated!',
               style: TextStyle(
-                color: Color(0xFF4CAF50),
+                color: Color(0xFF00E5FF),
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
@@ -473,15 +473,15 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Answer copied! Send it to the host.'),
-                    backgroundColor: Color(0xFF4CAF50),
+                    backgroundColor: Color(0xFF00E5FF),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
               label: const Text('COPY ANSWER'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF00E5FF),
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
@@ -514,7 +514,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
             const SizedBox(height: 20),
             const CircularProgressIndicator(
-              color: Color(0xFF4CAF50),
+              color: Color(0xFF00E5FF),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -817,7 +817,7 @@ class _JoinGameScreenState extends State<_JoinGameScreen> {
             const Text(
               'Answer Generated!',
               style: TextStyle(
-                color: Color(0xFF4CAF50),
+                color: Color(0xFF00E5FF),
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
@@ -856,15 +856,15 @@ class _JoinGameScreenState extends State<_JoinGameScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Answer copied! Send it to the host.'),
-                    backgroundColor: Color(0xFF4CAF50),
+                    backgroundColor: Color(0xFF00E5FF),
                   ),
                 );
               },
               icon: const Icon(Icons.copy),
               label: const Text('COPY ANSWER'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF00E5FF),
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
@@ -897,7 +897,7 @@ class _JoinGameScreenState extends State<_JoinGameScreen> {
 
             const SizedBox(height: 20),
             const CircularProgressIndicator(
-              color: Color(0xFF4CAF50),
+              color: Color(0xFF00E5FF),
             ),
             const SizedBox(height: 12),
             const Text(

@@ -16,30 +16,17 @@ class StoneWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            fillColor.withOpacity(0.9),
-            fillColor.withOpacity(0.7),
-            fillColor.withOpacity(0.4),
-          ],
-          stops: const [0.3, 0.7, 1.0],
-        ),
+        color: fillColor, // Solid fill for stones
         boxShadow: [
-          // Inner glow
+          // Subtle inner shadow for depth
           BoxShadow(
-            color: fillColor.withOpacity(0.8),
-            blurRadius: 8,
-            spreadRadius: 1,
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 2,
+            spreadRadius: -1,
           ),
-          // Outer glow
+          // Minimal outer glow
           BoxShadow(
-            color: fillColor.withOpacity(0.5),
-            blurRadius: 16,
-            spreadRadius: 2,
-          ),
-          // Intense center glow
-          BoxShadow(
-            color: fillColor.withOpacity(0.9),
+            color: fillColor.withOpacity(0.4),
             blurRadius: 4,
             spreadRadius: 0,
           ),
@@ -49,23 +36,11 @@ class StoneWidget extends StatelessWidget {
                 color: borderColor,
                 width: 3,
               )
-            : null,
-      ),
-      child: hasBorder
-          ? Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  // Border glow for stolen pieces
-                  BoxShadow(
-                    color: borderColor!.withOpacity(0.6),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+            : Border.all(
+                color: fillColor.withOpacity(0.3),
+                width: 1,
               ),
-            )
-          : null,
+      ),
     );
   }
 }

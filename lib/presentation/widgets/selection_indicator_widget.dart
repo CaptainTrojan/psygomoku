@@ -57,10 +57,10 @@ class _SelectionIndicatorWidgetState extends State<SelectionIndicatorWidget>
                     width: 3,
                   ),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.yellowAccent.withOpacity(0.6),
-                      blurRadius: 12,
-                      spreadRadius: 2,
+                    BoxShadow (
+                      color: Colors.yellowAccent.withOpacity(0.5),
+                      blurRadius: 4, // Sharper
+                      spreadRadius: 0,
                     ),
                   ],
                 ),

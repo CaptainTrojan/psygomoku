@@ -29,10 +29,15 @@ class TurnIndicator extends StatelessWidget {
       phaseText = 'Opponent is guessing...';
       phaseColor = Colors.purple;
       phaseIcon = Icons.hourglass_empty;
+    } else if (state is OpponentRevealingState) {
+      phaseText = 'Waiting for opponent...';
+      phaseColor = Colors.orange;
+      phaseIcon = Icons.hourglass_empty;
     } else if (state is RevealingState) {
-      phaseText = 'Revealing...';
+      // This should never be shown (revealing is instant)
+      phaseText = 'Processing...';
       phaseColor = Colors.green;
-      phaseIcon = Icons.visibility;
+      phaseIcon = Icons.sync;
     } else {
       phaseText = 'Unknown phase';
       phaseColor = Colors.grey;

@@ -175,7 +175,42 @@ class GameResult extends Equatable {
     return 'You Lost';
   }
 
-  /// Gets detailed result description
+  /// Gets detailed result description from player's perspective
+  String getDetailedDescription(Player player) {
+    if (isDraw) {
+      return 'Game ended in a draw - board is full';
+    }
+    
+    final isWinner = winner?.id == player.id;
+    final winnerName = winner?.nickname ?? 'Winner';
+    
+    switch (reason) {
+      case GameEndReason.win:
+        return isWinner
+            ? 'You achieved 5-in-a-row'
+            : '$winnerName achieved 5-in-a-row';
+      case GameEndReason.timeout:
+        return isWinner
+            ? 'Opponent ran out of time'
+            : 'You ran out of time';
+      case GameEndReason.forfeit:
+        return isWinner
+            ? 'Opponent forfeited'
+            : 'You forfeited';
+      case GameEndReason.cheatDetected:
+        return isWinner
+            ? 'Opponent caught cheating'
+            : 'Cheating detected';
+      case GameEndReason.disconnect:
+        return isWinner
+            ? 'Opponent disconnected'
+            : 'Connection lost';
+      case GameEndReason.draw:
+        return 'Draw - Board full';
+    }
+  }
+
+  /// Gets detailed result description (legacy, not player-aware)
   String get detailedDescription {
     if (isDraw) {
       return 'Game ended in a draw - board is full';

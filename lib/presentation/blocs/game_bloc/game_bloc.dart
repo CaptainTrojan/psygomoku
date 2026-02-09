@@ -42,6 +42,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<OpponentRevealedEvent>(_onOpponentRevealed);
     on<TimerTickEvent>(_onTimerTick);
     on<ForfeitEvent>(_onForfeit);
+    on<OpponentForfeitedEvent>(_onOpponentForfeited);
     on<DisconnectEvent>(_onDisconnect);
     on<CheatDetectedEvent>(_onCheatDetected);
     on<InitiateGuessPhaseEvent>(_onInitiateGuessPhase);
@@ -132,20 +133,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       'timestamp': DateTime.now().toIso8601String(),
     });
     
-    // Transition to waiting for opponent to mark (if they haven't already)
-    if (_opponentHash == null) {
-      emit(OpponentMarkingState(
-        localPlayer: currentState.localPlayer,
-        remotePlayer: currentState.remotePlayer,
-        board: currentState.board,
-        config: currentState.config,
-        moveHistory: currentState.moveHistory,
-        remainingSeconds: currentState.remainingSeconds,
-      ));
-    } else {
-      // Opponent already marked, move to guessing
-      add(const InitiateGuessPhaseEvent());
-    }
+    // After marking, wait for opponent to guess
+    emit(OpponentGuessingState(
+      localPlayer: currentState.localPlayer,
+      remotePlayer: currentState.remotePlayer,
+      board: currentState.board,
+      config: currentState.config,
+      moveHistory: currentState.moveHistory,
+      ourHash: _currentHash!,
+      ourMarkedPosition: _currentMarkedPosition!,
+      ourSalt: _currentSalt!,
+      remainingSeconds: currentState.remainingSeconds,
+    ));
   }
 
   /// Cancel current selection
@@ -172,23 +171,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       'timestamp': DateTime.now().toIso8601String(),
     });
     
-    // Wait for opponent to guess (if they haven't already)
-    if (_opponentGuess == null) {
-      emit(OpponentGuessingState(
-        localPlayer: currentState.localPlayer,
-        remotePlayer: currentState.remotePlayer,
-        board: currentState.board,
-        config: currentState.config,
-        moveHistory: currentState.moveHistory,
-        ourHash: _currentHash!,
-        ourMarkedPosition: _currentMarkedPosition!,
-        ourSalt: _currentSalt!,
-        remainingSeconds: currentState.remainingSeconds,
-      ));
-    } else {
-      // Opponent already guessed, move to revealing
-      add(const RevealMoveEvent());
-    }
+    // After guessing, wait for opponent (marker) to reveal
+    emit(OpponentRevealingState(
+      localPlayer: currentState.localPlayer,
+      remotePlayer: currentState.remotePlayer,
+      board: currentState.board,
+      config: currentState.config,
+      moveHistory: currentState.moveHistory,
+      ourGuess: _currentGuess!,
+      opponentHash: currentState.opponentHash,
+      remainingSeconds: currentState.remainingSeconds,
+    ));
   }
 
   /// Received opponent's mark (hash)
@@ -209,18 +202,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       }
     }
     
-    // If we already marked, move to guessing. Otherwise allow local to mark.
-    if (_currentHash != null) {
-      add(const InitiateGuessPhaseEvent());
-    } else if (state is GameActiveState) {
+    // Opponent marked, we should guess (we're the guesser this turn)
+    if (state is GameActiveState) {
       final currentState = state as GameActiveState;
-      emit(MarkingState(
+      
+      // Reset timer for guessing phase
+      _phaseStartTime = DateTime.now();
+      
+      emit(GuessingState(
         localPlayer: currentState.localPlayer,
         remotePlayer: currentState.remotePlayer,
         board: currentState.board,
         config: currentState.config,
         moveHistory: currentState.moveHistory,
-        remainingSeconds: currentState.remainingSeconds,
+        opponentHash: _opponentHash!,
+        remainingSeconds: currentState.config.isTimed ? currentState.config.initialSeconds : null,
       ));
     }
   }
@@ -229,10 +225,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   Future<void> _onOpponentGuessed(OpponentGuessedEvent event, Emitter<GameState> emit) async {
     _opponentGuess = event.guessedPosition;
     
+    if (state is! GameActiveState) return;
+    final currentState = state as GameActiveState;
+    
     // Check timer anti-cheat
-    if (_phaseStartTime != null && state is GameActiveState) {
+    if (_phaseStartTime != null) {
       final elapsed = event.timestamp.difference(_phaseStartTime!).inSeconds;
-      final currentState = state as GameActiveState;
       
       if (currentState.config.isTimed) {
         final expectedMax = currentState.config.initialSeconds + 2;
@@ -243,9 +241,122 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       }
     }
     
-    // If we already guessed, move to revealing
-    if (_currentGuess != null) {
-      add(const RevealMoveEvent());
+    // Immediately send reveal message (auto-reveal)
+    await _sendGameMessage({
+      'type': 'reveal',
+      'position': _currentMarkedPosition!.toJson(),
+      'salt': _currentSalt,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
+    // Apply turn results inline
+    final theyGuessedCorrectly = _opponentGuess == _currentMarkedPosition;
+    
+    Board newBoard = currentState.board;
+    
+    // We marked this turn, they guessed
+    if (theyGuessedCorrectly) {
+      // They stole our stone
+      newBoard = newBoard.placeStolenStone(
+        position: _currentMarkedPosition!,
+        winnerColor: currentState.remotePlayer.stoneColor!,
+        loserColor: currentState.localPlayer.stoneColor!,
+      );
+    } else {
+      // We place normally
+      newBoard = newBoard.placeRegularStone(
+        position: _currentMarkedPosition!,
+        color: currentState.localPlayer.stoneColor!,
+      );
+    }
+    
+    // Create Move record for history
+    final move = Move.create(
+      markerColor: currentState.localPlayer.stoneColor!,
+      markedPosition: _currentMarkedPosition!,
+      hash: _currentHash!,
+      salt: _currentSalt!,
+    ).withGuess(
+      _opponentGuess!,
+    ).revealed();
+    
+    final updatedHistory = [...currentState.moveHistory, move];
+    
+    // Check for win
+    final winner = newBoard.getWinner();
+    if (winner != null) {
+      final winningPlayer = winner == currentState.localPlayer.stoneColor
+          ? currentState.localPlayer
+          : currentState.remotePlayer;
+      final losingPlayer = winner == currentState.localPlayer.stoneColor
+          ? currentState.remotePlayer
+          : currentState.localPlayer;
+      
+      final result = GameResult.win(
+        winner: winningPlayer,
+        loser: losingPlayer,
+        finalBoard: newBoard,
+        winningColor: winner,
+      );
+      
+      _cleanupTurn();
+      _gameTimer?.cancel();
+      
+      emit(GameOverState(
+        result: result,
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        finalBoard: newBoard,
+        moveHistory: updatedHistory,
+      ));
+      return;
+    }
+    
+    // Check for draw
+    if (_rulesEngine.isBoardFull(newBoard)) {
+      final result = GameResult.draw(
+        player1: currentState.localPlayer,
+        player2: currentState.remotePlayer,
+        finalBoard: newBoard,
+      );
+      
+      _cleanupTurn();
+      _gameTimer?.cancel();
+      
+      emit(GameOverState(
+        result: result,
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        finalBoard: newBoard,
+        moveHistory: updatedHistory,
+      ));
+      return;
+    }
+    
+    // Continue to next turn - LOSER marks next
+    _cleanupTurn();
+    _phaseStartTime = DateTime.now();
+    
+    if (theyGuessedCorrectly) {
+      // They (guesser) won, we (marker) lost → we mark again
+      emit(MarkingState(
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        board: newBoard,
+        config: currentState.config,
+        moveHistory: updatedHistory,
+        remainingSeconds: currentState.config.isTimed ? currentState.config.initialSeconds : null,
+      ));
+    } else {
+      // They guessed wrong, we (marker) won → turn switches (they mark next)
+      emit(OpponentMarkingState(
+        localPlayer: currentState.localPlayer,
+        remotePlayer: currentState.remotePlayer,
+        board: newBoard,
+        config: currentState.config,
+        moveHistory: updatedHistory,
+        remainingSeconds: currentState.config.isTimed ? currentState.config.initialSeconds : null,
+      ));
     }
   }
 
@@ -320,34 +431,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// Received opponent's reveal
   Future<void> _onOpponentRevealed(OpponentRevealedEvent event, Emitter<GameState> emit) async {
-    if (state is! RevealingState) {
-      // We might be in OpponentGuessingState, transition to RevealingState first
-      if (state is OpponentGuessingState) {
-        final currentState = state as OpponentGuessingState;
-        emit(RevealingState(
-          localPlayer: currentState.localPlayer,
-          remotePlayer: currentState.remotePlayer,
-          board: currentState.board,
-          config: currentState.config,
-          moveHistory: currentState.moveHistory,
-          ourMarkedPosition: currentState.ourMarkedPosition,
-          ourSalt: currentState.ourSalt,
-          ourGuess: _opponentGuess!,
-          opponentRevealedPosition: event.revealedPosition,
-          isVerifying: true,
-          remainingSeconds: currentState.remainingSeconds,
-        ));
-      } else {
-        return;
-      }
-    } else {
-      final currentState = state as RevealingState;
-      emit(currentState.copyWith(
-        opponentRevealedPosition: event.revealedPosition,
-        isVerifying: true,
-      ));
-    }
-    
     // Verify opponent's reveal
     final isValid = _cryptoService.verifyMove(
       originalHash: _opponentHash!,
@@ -360,74 +443,48 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     
-    // Both players have revealed, now apply stones to board
-    _applyTurnResults(emit);
-  }
-
-  /// Apply turn results to board (place stones, check win)
-  void _applyTurnResults(Emitter<GameState> emit) {
-    if (state is! RevealingState) return;
+    // Get current state (should be OpponentRevealingState after guesser sent guess)
+    final GameActiveState currentState;
+    if (state is OpponentRevealingState) {
+      currentState = state as OpponentRevealingState;
+    } else if (state is GuessingState) {
+      // Reveal arrived before we finished guessing (race condition)
+      currentState = state as GuessingState;
+    } else {
+      return;
+    }
     
-    final currentState = state as RevealingState;
-    if (!currentState.hasOpponentRevealed) return;
-    
-    final opponentRevealedPos = currentState.opponentRevealedPosition!;
-    
-    // Determine if guesses were correct
+    // Apply turn results inline
+    // We are the guesser (opponent marked, we guessed, opponent revealed)
+    final opponentRevealedPos = event.revealedPosition;
     final weGuessedCorrectly = _currentGuess == opponentRevealedPos;
-    final theyGuessedCorrectly = _opponentGuess == _currentMarkedPosition;
     
     Board newBoard = currentState.board;
     
-    // Determine whose turn it was to mark (host marks on odd turns)
-    final turnNumber = currentState.turnNumber;
-    final isOddTurn = turnNumber % 2 == 1;
-    final hostMarkedThisTurn = isOddTurn;
-    final weMarkedThisTurn = currentState.localPlayer.isHost == hostMarkedThisTurn;
-    
-    // Apply stones based on correct guesses
-    if (weMarkedThisTurn) {
-      // We marked, they guessed
-      if (theyGuessedCorrectly) {
-        // They stole our stone
-        newBoard = newBoard.placeStolenStone(
-          position: _currentMarkedPosition!,
-          winnerColor: currentState.remotePlayer.stoneColor!,
-          loserColor: currentState.localPlayer.stoneColor!,
-        );
-      } else {
-        // We place normally
-        newBoard = newBoard.placeRegularStone(
-          position: _currentMarkedPosition!,
-          color: currentState.localPlayer.stoneColor!,
-        );
-      }
+    // Apply stone to board based on whether we guessed correctly
+    if (weGuessedCorrectly) {
+      // We stole their stone
+      newBoard = newBoard.placeStolenStone(
+        position: opponentRevealedPos,
+        winnerColor: currentState.localPlayer.stoneColor!,
+        loserColor: currentState.remotePlayer.stoneColor!,
+      );
     } else {
-      // They marked, we guessed
-      if (weGuessedCorrectly) {
-        // We stole their stone
-        newBoard = newBoard.placeStolenStone(
-          position: opponentRevealedPos,
-          winnerColor: currentState.localPlayer.stoneColor!,
-          loserColor: currentState.remotePlayer.stoneColor!,
-        );
-      } else {
-        // They place normally
-        newBoard = newBoard.placeRegularStone(
-          position: opponentRevealedPos,
-          color: currentState.remotePlayer.stoneColor!,
-        );
-      }
+      // They place normally
+      newBoard = newBoard.placeRegularStone(
+        position: opponentRevealedPos,
+        color: currentState.remotePlayer.stoneColor!,
+      );
     }
     
     // Create Move record for history
     final move = Move.create(
-      markerColor: weMarkedThisTurn ? currentState.localPlayer.stoneColor! : currentState.remotePlayer.stoneColor!,
-      markedPosition: weMarkedThisTurn ? _currentMarkedPosition! : opponentRevealedPos,
-      hash: weMarkedThisTurn ? _currentHash! : _opponentHash!,
-      salt: weMarkedThisTurn ? _currentSalt! : '', // We don't store opponent's salt
+      markerColor: currentState.remotePlayer.stoneColor!,
+      markedPosition: opponentRevealedPos,
+      hash: _opponentHash!,
+      salt: '', // We don't store opponent's salt
     ).withGuess(
-      weMarkedThisTurn ? _opponentGuess! : _currentGuess!,
+      _currentGuess!,
     ).revealed();
     
     final updatedHistory = [...currentState.moveHistory, move];
@@ -483,15 +540,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     
-    // Continue to next turn
+    // Continue to next turn - LOSER marks next
     _cleanupTurn();
     _phaseStartTime = DateTime.now();
     
-    // Next turn - roles swap
-    final nextIsLocalPlayerMarking = !weMarkedThisTurn;
-    
-    if (nextIsLocalPlayerMarking) {
-      emit(MarkingState(
+    if (weGuessedCorrectly) {
+      // We (guesser) won, they (marker) lost → they mark again
+      emit(OpponentMarkingState(
         localPlayer: currentState.localPlayer,
         remotePlayer: currentState.remotePlayer,
         board: newBoard,
@@ -500,7 +555,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         remainingSeconds: currentState.config.isTimed ? currentState.config.initialSeconds : null,
       ));
     } else {
-      emit(OpponentMarkingState(
+      // We guessed wrong, they (marker) won → turn switches (we mark next)
+      emit(MarkingState(
         localPlayer: currentState.localPlayer,
         remotePlayer: currentState.remotePlayer,
         board: newBoard,
@@ -557,9 +613,38 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     
     final currentState = state as GameActiveState;
     
+    // Notify opponent
+    await _sendGameMessage({
+      'type': 'forfeit',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
     final result = GameResult.forfeit(
       winner: currentState.remotePlayer,
       loser: currentState.localPlayer,
+      finalBoard: currentState.board,
+    );
+    
+    _gameTimer?.cancel();
+    
+    emit(GameOverState(
+      result: result,
+      localPlayer: currentState.localPlayer,
+      remotePlayer: currentState.remotePlayer,
+      finalBoard: currentState.board,
+      moveHistory: currentState.moveHistory,
+    ));
+  }
+
+  /// Opponent forfeited
+  Future<void> _onOpponentForfeited(OpponentForfeitedEvent event, Emitter<GameState> emit) async {
+    if (state is! GameActiveState) return;
+    
+    final currentState = state as GameActiveState;
+    
+    final result = GameResult.forfeit(
+      winner: currentState.localPlayer,
+      loser: currentState.remotePlayer,
       finalBoard: currentState.board,
     );
     
