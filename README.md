@@ -1,6 +1,6 @@
-# Psygomoku (Psychic Gomoku)
+# Psygomoku (Psycho-Gomoku)
 
-**Serverless P2P Gomoku with Cryptographic Fog of War**
+**Serverless P2P Gomoku with Cryptographic 'Fog of War'**
 
 A strategy board game based on Gomoku (5-in-a-row) with a unique "Mental Poker" twist. Players place pieces secretly using cryptographic commitments—guess your opponent's move correctly to steal their turn!
 
@@ -11,32 +11,32 @@ A strategy board game based on Gomoku (5-in-a-row) with a unique "Mental Poker" 
 - **Pieces:** Cyan (Player 1) and Magenta (Player 2) glowing stones
 - **Win Condition:** 5 or more stones of the same color in a continuous row, column, or diagonal
 
-### The Psychic Turn Protocol
+### The Psycho Turn Protocol
 
-Each turn is a cryptographic handshake that creates "fog of war":
+Each turn is a cryptographic handshake that creates "fog of war". Let's say that it's Alice's turn to place a stone. In normal gomoku, she would do just that and it would be Bob's turn to play next. But here, each turn has four phases:
 
-1. **MARK Phase** (Active Player)
-   - Player A secretly selects coordinates `(x, y)`
+1. **MARK Phase**
+   - Alice secretly selects coordinates `(x, y)`
    - System generates random `Salt`
    - System computes `Hash = SHA256(x + y + Salt)`
-   - System sends only `Hash` to Player B
+   - System sends only `Hash` to Bob
    
-2. **GUESS Phase** (Passive Player)
-   - Player B tries to predict the marked spot `(gx, gy)`
-   - System sends guess in plaintext to Player A
+2. **GUESS Phase**
+   - Bob tries to predict the marked spot `(gx, gy)`
+   - System sends guess in plaintext to Alice
    
-3. **REVEAL Phase** (Active Player)
-   - Player A reveals `(x, y, Salt)` to Player B
+3. **REVEAL Phase**
+   - Alice reveals `(x, y, Salt)` to Bob
    
-4. **VERIFY Phase** (Passive Player)
-   - Player B computes `TestHash = SHA256(x + y + Salt)`
-   - If `TestHash ≠ Hash` → Player A **auto-forfeits** (cheating detected)
+4. **VERIFY Phase**
+   - Bob computes `TestHash = SHA256(x + y + Salt)`
+   - If `TestHash ≠ Hash` → Bob **auto-disconnects** from Alice (cheating detected)
    - If guess was **correct** `(gx, gy) == (x, y)`:
-     - Player B gets a stone at that position (intercepted!)
-     - Player A marks again (turn doesn't switch)
+     - **Bob** gets a stone at that position instead of Alice (intercepted!)
+     - Alice **marks again** (turn doesn't switch)
    - If guess was **wrong**:
-     - Player A gets a stone at marked position
-     - Turn switches to Player B
+     - Alice gets a stone at marked position (like in normal gomoku)
+     - Turn switches to Bob (like in normal gomoku)
 
 ### Move Confirmation
 - **Two-Step Selection:** First tap selects, second tap confirms
