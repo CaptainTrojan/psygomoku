@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/theme/app_theme.dart';
 import '../../infrastructure/persistence/profile_repository.dart';
 import '../blocs/connection_bloc/connection_bloc.dart';
 import '../blocs/connection_bloc/connection_event.dart' as bloc_event;
 import '../blocs/connection_bloc/connection_state.dart' as bloc_state;
+import '../widgets/app_button.dart';
 import 'game_session_screen.dart';
 import 'connection_mode_screen.dart';
 
@@ -35,13 +38,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text('Online P2P'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
-      body: BlocConsumer<ConnectionBloc, bloc_state.ConnectionState>(
+      body: TechBackground(
+        child: BlocConsumer<ConnectionBloc, bloc_state.ConnectionState>(
         listenWhen: (previous, current) {
           // Only trigger listener when we transition TO ConnectedState
           return previous is! bloc_state.ConnectedState && 
@@ -73,7 +74,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Error: ${state.error}'),
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.error,
               ),
             );
           }
@@ -99,6 +100,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             return _buildModeSelectionView(context);
           }
         },
+        ),
       ),
     );
   }
@@ -113,45 +115,46 @@ class _LobbyScreenState extends State<LobbyScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Title
-          const Text(
+          Text(
             'PSYGOMOKU',
-            style: TextStyle(
-              color: Colors.cyan,
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
+            style: GoogleFonts.orbitron(
+              fontSize: responsiveTextSize(context, 46),
+              fontWeight: FontWeight.w700,
               letterSpacing: 4,
+              color: AppColors.primary,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Cryptographic Fog of War Gomoku',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14,
-              letterSpacing: 1,
+            'Psychic Gomoku',
+            style: GoogleFonts.orbitron(
+              fontSize: responsiveTextSize(context, 14),
+              letterSpacing: 2,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 80),
           
           // Host button
-          _PrimaryButton(
-            label: 'HOST GAME',
+          AppButton.primary(
+            text: 'HOST GAME',
             icon: Icons.add_circle_outline,
-            color: Colors.cyan,
             onPressed: () => _onHostPressed(context),
+            width: 280,
           ),
           const SizedBox(height: 24),
           
           // Join button
-          _PrimaryButton(
-            label: 'JOIN GAME',
+          AppButton.secondary(
+            text: 'JOIN GAME',
             icon: Icons.login,
-            color: Colors.pinkAccent,
             onPressed: () {
               setState(() {
                 _isJoinView = true;
               });
             },
+            width: 280,
           ),
           
           const SizedBox(height: 80),
@@ -168,7 +171,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const Text(
             'YOUR SESSION CODE',
             style: TextStyle(
-              color: Colors.cyan,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -179,17 +182,17 @@ class _LobbyScreenState extends State<LobbyScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
+              color: AppColors.backgroundMedium,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.cyan.withOpacity(0.3),
+                color: AppColors.primary.withOpacity(0.3),
                 width: 2,
               ),
             ),
             child: Text(
               sessionCode,
-              style: const TextStyle(
-                color: Colors.cyan,
+              style: TextStyle(
+                color: AppColors.primary,
                 fontSize: 64,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 16,
@@ -204,23 +207,26 @@ class _LobbyScreenState extends State<LobbyScreen> {
             onPressed: () {
               Clipboard.setData(ClipboardData(text: sessionCode));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Code copied!')),
+                SnackBar(
+                  content: const Text('Code copied!'),
+                  backgroundColor: AppColors.primary,
+                ),
               );
             },
-            icon: const Icon(Icons.copy, color: Colors.cyan),
-            label: const Text(
+            icon: Icon(Icons.copy, color: AppColors.primary),
+            label: Text(
               'COPY CODE',
-              style: TextStyle(color: Colors.cyan, letterSpacing: 1),
+              style: TextStyle(color: AppColors.primary, letterSpacing: 1),
             ),
           ),
           const SizedBox(height: 48),
           
           // Waiting indicator
-          const CircularProgressIndicator(color: Colors.cyan),
+          CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Waiting for opponent to join...',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 48),
           
@@ -229,9 +235,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
             onPressed: () {
               context.read<ConnectionBloc>().add(const bloc_event.ResetConnectionEvent());
             },
-            child: const Text(
+            child: Text(
               'CANCEL',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -249,7 +255,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const Text(
             'STEP 1: SHARE YOUR OFFER',
             style: TextStyle(
-              color: Colors.cyan,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -261,14 +267,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
+              color: AppColors.backgroundMedium,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
             child: SelectableText(
               offerString,
               style: const TextStyle(
-                color: Colors.white70,
+                color: AppColors.textSecondary,
                 fontSize: 10,
                 fontFamily: 'Courier',
               ),
@@ -277,27 +283,25 @@ class _LobbyScreenState extends State<LobbyScreen> {
           ),
           const SizedBox(height: 12),
           
-          ElevatedButton.icon(
+          AppButton.primary(
+            text: 'COPY OFFER',
+            icon: Icons.copy,
             onPressed: () {
               Clipboard.setData(ClipboardData(text: offerString));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Offer copied!')),
+                SnackBar(
+                  content: const Text('Offer copied!'),
+                  backgroundColor: AppColors.primary,
+                ),
               );
             },
-            icon: const Icon(Icons.copy),
-            label: const Text('COPY OFFER'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyan,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.all(16),
-            ),
           ),
           const SizedBox(height: 40),
           
           const Text(
             'STEP 2: PASTE OPPONENT\'S ANSWER',
             style: TextStyle(
-              color: Colors.pinkAccent,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -309,29 +313,25 @@ class _LobbyScreenState extends State<LobbyScreen> {
             controller: _manualAnswerController,
             decoration: InputDecoration(
               hintText: 'Paste answer string here...',
-              hintStyle: TextStyle(color: Colors.grey[700]),
               filled: true,
-              fillColor: const Color(0xFF1E1E1E),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.pinkAccent.withOpacity(0.3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.pinkAccent.withOpacity(0.3)),
-              ),
+              fillColor: AppColors.backgroundMedium,
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 10),
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 10),
             maxLines: 4,
           ),
           const SizedBox(height: 16),
           
-          ElevatedButton.icon(
+          AppButton.primary(
+            text: 'CONNECT',
+            icon: Icons.link,
             onPressed: () {
               final answer = _manualAnswerController.text.trim();
               if (answer.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please paste the answer')),
+                  SnackBar(
+                    content: const Text('Please paste the answer'),
+                    backgroundColor: AppColors.warning,
+                  ),
                 );
                 return;
               }
@@ -339,13 +339,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 bloc_event.ManualHostReceiveAnswerEvent(answer),
               );
             },
-            icon: const Icon(Icons.link),
-            label: const Text('CONNECT'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pinkAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.all(16),
-            ),
           ),
           const SizedBox(height: 24),
           
@@ -355,7 +348,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             },
             child: const Text(
               'CANCEL',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -373,7 +366,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const Text(
             'YOUR ANSWER',
             style: TextStyle(
-              color: Colors.pinkAccent,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -382,7 +375,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const SizedBox(height: 16),
           const Text(
             'Copy this and send it to the host:',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -390,14 +383,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
+              color: AppColors.backgroundMedium,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.pinkAccent.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
             child: SelectableText(
               answerString,
               style: const TextStyle(
-                color: Colors.white70,
+                color: AppColors.textSecondary,
                 fontSize: 10,
                 fontFamily: 'Courier',
               ),
@@ -416,18 +409,18 @@ class _LobbyScreenState extends State<LobbyScreen> {
             icon: const Icon(Icons.copy),
             label: const Text('COPY ANSWER'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pinkAccent,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textPrimary,
               padding: const EdgeInsets.all(16),
             ),
           ),
           const SizedBox(height: 32),
           
-          const CircularProgressIndicator(color: Colors.pinkAccent),
+          const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
           const Text(
             'Waiting for connection...',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -436,18 +429,30 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   Widget _buildLoadingView(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(color: Colors.cyan),
-          const SizedBox(height: 24),
-          Text(
-            message,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+    return BlocBuilder<ConnectionBloc, bloc_state.ConnectionState>(
+      builder: (context, state) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Connection progress widget
+                _ConnectionProgressWidget(state: state, message: message),
+                const SizedBox(height: 24),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: responsiveTextSize(context, 16),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -456,11 +461,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 64),
+          const Icon(Icons.error_outline, color: AppColors.error, size: 64),
           const SizedBox(height: 24),
           Text(
             error,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
+            style: const TextStyle(color: AppColors.error, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -468,7 +473,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             onPressed: () {
               context.read<ConnectionBloc>().add(const bloc_event.ResetConnectionEvent());
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('TRY AGAIN'),
           ),
         ],
@@ -486,7 +491,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const Text(
             'JOIN GAME',
             style: TextStyle(
-              color: Colors.pinkAccent,
+              color: AppColors.primary,
               fontSize: 32,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
@@ -499,7 +504,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const Text(
             'AUTO MODE',
             style: TextStyle(
-              color: Colors.cyan,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -507,7 +512,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const SizedBox(height: 8),
           Text(
             'Enter the 4-digit code from your opponent',
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
           
@@ -518,20 +523,20 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   controller: _joinCodeController,
                   decoration: InputDecoration(
                     hintText: '1234',
-                    hintStyle: TextStyle(color: Colors.grey[700]),
+                    hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
                     filled: true,
-                    fillColor: const Color(0xFF1E1E1E),
+                    fillColor: AppColors.backgroundMedium,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.cyan.withOpacity(0.3)),
+                      borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.cyan.withOpacity(0.3)),
+                      borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
                     ),
                   ),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 24,
                     letterSpacing: 8,
                     fontFeatures: [FontFeature.tabularFigures()],
@@ -560,8 +565,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -573,14 +578,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
           ),
           const SizedBox(height: 40),
           
-          Divider(color: Colors.grey[800], thickness: 2),
+          Divider(color: AppColors.backgroundMedium, thickness: 2),
           const SizedBox(height: 40),
           
           // Manual mode: Enter offer
           const Text(
             'MANUAL MODE',
             style: TextStyle(
-              color: Colors.pinkAccent,
+              color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -588,7 +593,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           const SizedBox(height: 8),
           Text(
             'Paste the offer string from your opponent',
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
           
@@ -596,19 +601,19 @@ class _LobbyScreenState extends State<LobbyScreen> {
             controller: _manualOfferController,
             decoration: InputDecoration(
               hintText: 'Paste offer here...',
-              hintStyle: TextStyle(color: Colors.grey[700]),
+              hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
               filled: true,
-              fillColor: const Color(0xFF1E1E1E),
+              fillColor: AppColors.backgroundMedium,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.pinkAccent.withOpacity(0.3)),
+                borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.pinkAccent.withOpacity(0.3)),
+                borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 10),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10),
             maxLines: 4,
           ),
           const SizedBox(height: 16),
@@ -632,8 +637,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
             icon: const Icon(Icons.login),
             label: const Text('JOIN WITH MANUAL CODE'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pinkAccent,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textPrimary,
               padding: const EdgeInsets.all(16),
             ),
           ),
@@ -647,7 +652,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
             },
             child: const Text(
               'BACK',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -668,45 +673,138 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onPressed,
+/// Detailed WebRTC connection progress widget
+class _ConnectionProgressWidget extends StatefulWidget {
+  final bloc_state.ConnectionState state;
+  final String message;
+
+  const _ConnectionProgressWidget({
+    required this.state,
+    required this.message,
   });
 
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onPressed;
+  @override
+  State<_ConnectionProgressWidget> createState() => _ConnectionProgressWidgetState();
+}
+
+class _ConnectionProgressWidgetState extends State<_ConnectionProgressWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  DateTime? _startTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTime = DateTime.now();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 280,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            letterSpacing: 2,
-            fontWeight: FontWeight.bold,
+    final progress = _getProgress();
+    final steps = _getConnectionSteps();
+    final currentStep = (progress * steps.length).floor().clamp(0, steps.length - 1);
+    
+    // Check if taking too long (>30 seconds)
+    final duration = DateTime.now().difference(_startTime ?? DateTime.now());
+    final isSlow = duration.inSeconds > 30;
+
+    return Column(
+      children: [
+        // Progress bar
+        SizedBox(
+          width: 280,
+          child: Column(
+            children: [
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor: AppColors.backgroundMedium,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                minHeight: 6,
+                borderRadius: BorderRadius.circular(3),
+              ),
+              const SizedBox(height: 16),
+              // Current step indicator
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    steps[currentStep].icon,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    steps[currentStep].label,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        if (isSlow) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Taking longer than usual...',
+            style: TextStyle(
+              color: AppColors.warning,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
           ),
-          shadowColor: color.withOpacity(0.5),
-          elevation: 8,
-        ),
-      ),
+        ],
+      ],
     );
   }
+
+  double _getProgress() {
+    final state = widget.state;
+    if (state is bloc_state.HostingState) {
+      if (state.mode == bloc_state.SignalingMode.auto) {
+        return 0.4; // Hosting with session code
+      } else {
+        return 0.2; // Generating offer
+      }
+    } else if (state is bloc_state.ManualWaitingForAnswerState) {
+      return 0.5; // Waiting for answer
+    } else if (state is bloc_state.JoiningState) {
+      return 0.6; // Joining
+    } else if (state is bloc_state.ManualAnswerReadyState) {
+      return 0.8; // Answer ready
+    } else if (state is bloc_state.ConnectedState) {
+      return 1.0; // Connected!
+    }
+    return 0.1; // Initializing
+  }
+
+  List<_ConnectionStep> _getConnectionSteps() {
+    return [
+      _ConnectionStep(Icons.settings, 'Initializing'),
+      _ConnectionStep(Icons.upload, 'Creating offer'),
+      _ConnectionStep(Icons.pending, 'Waiting for peer'),
+      _ConnectionStep(Icons.sync, 'Connecting'),
+      _ConnectionStep(Icons.link, 'Establishing link'),
+      _ConnectionStep(Icons.check_circle, 'Connected'),
+    ];
+  }
+}
+
+class _ConnectionStep {
+  final IconData icon;
+  final String label;
+
+  _ConnectionStep(this.icon, this.label);
 }

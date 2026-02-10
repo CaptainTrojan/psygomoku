@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'core/theme/app_theme.dart';
 import 'presentation/blocs/connection_bloc/connection_bloc.dart';
 import 'presentation/screens/home_screen.dart';
 import 'infrastructure/persistence/profile_repository.dart';
@@ -27,13 +28,7 @@ class PsygomokuApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Psygomoku',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF00E5FF),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        theme: getAppTheme(),
         home: HomeScreen(profileRepository: profileRepository),
       ),
     );

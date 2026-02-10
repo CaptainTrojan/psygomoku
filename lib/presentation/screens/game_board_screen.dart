@@ -14,7 +14,7 @@ import '../widgets/player_info_bar.dart';
 import '../widgets/timer_widget.dart';
 import '../widgets/turn_indicator.dart';
 import '../widgets/draggable_chat_panel.dart';
-import '../widgets/side_button_panel.dart';
+import '../widgets/game_footer_bar.dart';
 
 /// Main game screen showing board, player info, and timer
 class GameBoardScreen extends StatefulWidget {
@@ -163,7 +163,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     previewMarkedPosition = state.ourMarkedPosition;
                   }
 
-                  return Row(
+                  return Column(
                     children: [
                       // Main game area
                       Expanded(
@@ -297,8 +297,8 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                         ),
                       ),
 
-                      // Side panel with buttons
-                      SideButtonPanel(
+                      // Footer bar with buttons
+                      GameFooterBar(
                         onChatPressed: _toggleChat,
                         onForfeitPressed: () => _showForfeitDialog(context),
                         unreadChatCount: _unreadCount,
