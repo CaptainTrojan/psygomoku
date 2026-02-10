@@ -689,7 +689,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// Opponent disconnected
   Future<void> _onOpponentDisconnected(OpponentDisconnectedEvent event, Emitter<GameState> emit) async {
-    // Handle disconnect during active game
+    // Only handle disconnect if game is still active
+    // If game already ended (GameOverState), ignore disconnect - no victory for opponent leaving after game ends
     if (state is GameActiveState) {
       final currentState = state as GameActiveState;
       
@@ -708,28 +709,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         finalBoard: currentState.board,
         moveHistory: currentState.moveHistory,
       ));
-      return;
     }
-    
-    // Handle disconnect during game over state (e.g., during rematch dialog)
-    if (state is GameOverState) {
-      final currentState = state as GameOverState;
-      
-      // Update the result to show opponent disconnected
-      final result = GameResult.disconnect(
-        winner: currentState.localPlayer,
-        disconnector: currentState.remotePlayer,
-        finalBoard: currentState.finalBoard,
-      );
-      
-      emit(GameOverState(
-        result: result,
-        localPlayer: currentState.localPlayer,
-        remotePlayer: currentState.remotePlayer,
-        finalBoard: currentState.finalBoard,
-        moveHistory: currentState.moveHistory,
-      ));
-    }
+    // If already in GameOverState, do nothing - game is already finished
   }
 
   /// Cheat detected

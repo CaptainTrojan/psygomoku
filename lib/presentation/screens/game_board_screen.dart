@@ -73,37 +73,16 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     Navigator.of(context).pop(); // Close the dialog
                   }
 
-                  // Handle opponent disconnect while dialog is showing (rematch negotiation)
-                  if (_isDialogShowing &&
-                      state is GameOverState &&
-                      state.result.reason == GameEndReason.disconnect) {
-                    // Opponent left during rematch negotiation - go to main menu
-                    _isDialogShowing = false;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      // Close dialog and go to main menu
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Opponent left the game'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    });
-                    return;
-                  }
-
-                  // Show game over dialog
+                  // Show game over dialog only for non-disconnect endings
                   if (state is GameOverState && !_isDialogShowing) {
-                    // Don't show dialog if WE disconnected (we're the loser in disconnect)
-                    // Just navigate back to lobby
-                    if (state.result.reason == GameEndReason.disconnect &&
-                        state.result.loser?.id == state.localPlayer.id) {
+                    // For disconnects, just navigate back silently (snackbar already shown)
+                    if (state.result.reason == GameEndReason.disconnect) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!mounted) return;
                         Navigator.of(context).popUntil((route) => route.isFirst);
                       });
                     } else {
+                      // Show dialog for normal game endings (win, draw, forfeit, cheat)
                       _showGameOverDialog(context, state);
                     }
                   }

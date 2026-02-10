@@ -37,7 +37,6 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
   late final GameBloc _gameBloc;
   late final ChatBloc _chatBloc;
   StreamSubscription<Map<String, dynamic>>? _messageSub;
-  StreamSubscription<void>? _disconnectSub;
   StreamSubscription<GameState>? _gameStateSub;
   Timer? _handshakeTimer;
   int _handshakeAttempts = 0;
@@ -51,16 +50,8 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
     _chatBloc = ChatBloc(widget.transport);
 
     _messageSub = widget.transport.onMessage.listen(_handleTransportMessage);
-    _disconnectSub = widget.transport.onDisconnect.listen((_) {
-      // Opponent disconnected unexpectedly (not through our _handleDisconnect)
-      if (mounted) {
-        _showDisconnectedSnackBar();
-        _gameBloc.add(const OpponentDisconnectedEvent());
-        // Clean up and navigate back
-        context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    });
+    // Note: We intentionally do NOT listen to transport.onDisconnect here.
+    // All disconnects are handled via the 'disconnect' message protocol to avoid duplicate events.
 
     _gameStateSub = _gameBloc.stream.listen((state) {
       if (state is GameOverState && !_statsUpdated) {
@@ -77,7 +68,6 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
   @override
   void dispose() {
     _messageSub?.cancel();
-    _disconnectSub?.cancel();
     _gameStateSub?.cancel();
     _handshakeTimer?.cancel();
     _gameBloc.close();
@@ -206,9 +196,17 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
         ));
         break;
       case 'disconnect':
-        // Opponent sent explicit disconnect message
-        // Just fire the event - game_board_screen will show dialog
+        // Opponent disconnected - show notification and handle event
         _gameBloc.add(const OpponentDisconnectedEvent());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Opponent disconnected'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
         break;
       case 'rematch_request':
         _gameBloc.add(const OpponentRequestedRematchEvent());
@@ -261,16 +259,6 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
     // Clean up connection
     context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
     Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  void _showDisconnectedSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Opponent disconnected'),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
