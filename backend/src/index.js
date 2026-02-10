@@ -174,6 +174,23 @@ export default {
           });
         }
 
+        // Debug: List some keys in KV to see what's there
+        const kvKeys = await env.__STATIC_CONTENT.list({ limit: 10 });
+        
+        if (kvKeys.keys.length === 0) {
+          return new Response(JSON.stringify({
+            error: 'No assets found in KV namespace',
+            hint: 'The KV namespace exists but contains no files. Assets may not have been uploaded during deployment.',
+            kvNamespace: '__STATIC_CONTENT'
+          }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          });
+        }
+
         // Pass KV namespace, let manifest default to {} (will fetch from KV)
         const response = await getAssetFromKV(
           {
@@ -204,35 +221,22 @@ export default {
       } catch (e) {
         // If asset not found, serve index.html for client-side routing
         if (e.status === 404 || e.message.includes('Not Found')) {
-          try {
-            const indexRequest = new Request(
-              new URL('/index.html', request.url),
-              request
-            );
-            
-            const response = await getAssetFromKV(
-              {
-                request: indexRequest,
-                waitUntil(promise) {
-                  return ctx.waitUntil(promise);
-                },
-              },
-              {
-                ASSET_NAMESPACE: env.__STATIC_CONTENT,
-                // ASSET_MANIFEST not passed - will use default {} and fetch from KV
-              }
-            );
-
-            return new Response(response.body, {
-              status: 200,
-              headers: {
-                'Content-Type': 'text/html',
-                'Cache-Control': 'public, max-age=3600',
-              },
-            });
-          } catch (indexError) {
-            return new Response('Not Found', { status: 404 });
-          }
+          // Debug: Show what keys are available
+          const kvKeys = await env.__STATIC_CONTENT.list({ limit: 20 });
+          
+          return new Response(JSON.stringify({
+            error: 'Asset not found',
+            requestedPath: path,
+            hint: 'Files are stored with hashed names but manifest is missing',
+            availableKeys: kvKeys.keys.map(k => k.name),
+            suggestion: 'Need to fix manifest injection or store files without hashing'
+          }), {
+            status: 404,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          });
         }
         
         throw e;
