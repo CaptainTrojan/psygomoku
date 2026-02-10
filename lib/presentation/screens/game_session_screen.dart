@@ -37,6 +37,7 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
   late final GameBloc _gameBloc;
   late final ChatBloc _chatBloc;
   StreamSubscription<Map<String, dynamic>>? _messageSub;
+  StreamSubscription<void>? _disconnectSub;
   StreamSubscription<GameState>? _gameStateSub;
   Timer? _handshakeTimer;
   int _handshakeAttempts = 0;
@@ -50,8 +51,29 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
     _chatBloc = ChatBloc(widget.transport);
 
     _messageSub = widget.transport.onMessage.listen(_handleTransportMessage);
-    // Note: We intentionally do NOT listen to transport.onDisconnect here.
-    // All disconnects are handled via the 'disconnect' message protocol to avoid duplicate events.
+    
+    // Handle transport disconnect (opponent closes browser/tab or leaves after game ends)
+    _disconnectSub = widget.transport.onDisconnect.listen((_) {
+      if (!mounted) return;
+      
+      // Opponent disconnected - show notification and handle event
+      _gameBloc.add(const OpponentDisconnectedEvent());
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Opponent disconnected'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate back to lobby after brief delay to show snackbar
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      });
+    });
 
     _gameStateSub = _gameBloc.stream.listen((state) {
       if (state is GameOverState && !_statsUpdated) {
@@ -68,6 +90,7 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
   @override
   void dispose() {
     _messageSub?.cancel();
+    _disconnectSub?.cancel();
     _gameStateSub?.cancel();
     _handshakeTimer?.cancel();
     _gameBloc.close();
@@ -196,17 +219,8 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
         ));
         break;
       case 'disconnect':
-        // Opponent disconnected - show notification and handle event
-        _gameBloc.add(const OpponentDisconnectedEvent());
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Opponent disconnected'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+        // Disconnect message received - transport will close soon and onDisconnect will handle it
+        // No need to process here to avoid duplicate handling
         break;
       case 'rematch_request':
         _gameBloc.add(const OpponentRequestedRematchEvent());
