@@ -52,9 +52,13 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
 
     _messageSub = widget.transport.onMessage.listen(_handleTransportMessage);
     _disconnectSub = widget.transport.onDisconnect.listen((_) {
+      // Opponent disconnected unexpectedly (not through our _handleDisconnect)
       if (mounted) {
         _showDisconnectedSnackBar();
-        _handleDisconnect(context);
+        _gameBloc.add(const OpponentDisconnectedEvent());
+        // Clean up and navigate back
+        context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     });
 
@@ -202,6 +206,8 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
         ));
         break;
       case 'disconnect':
+        // Opponent sent explicit disconnect message
+        // Just fire the event - game_board_screen will show dialog
         _gameBloc.add(const OpponentDisconnectedEvent());
         break;
       case 'rematch_request':
@@ -249,8 +255,8 @@ class _GameSessionScreenState extends State<GameSessionScreen> {
       'timestamp': DateTime.now().toIso8601String(),
     });
     
-    // Notify game bloc about disconnect
-    _gameBloc.add(const OpponentDisconnectedEvent());
+    // WE are disconnecting, so WE forfeit (DisconnectEvent)
+    _gameBloc.add(const DisconnectEvent('User left game'));
     
     // Clean up connection
     context.read<ConnectionBloc>().add(const connection_events.DisconnectEvent());
