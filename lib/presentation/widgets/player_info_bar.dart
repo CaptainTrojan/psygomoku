@@ -21,8 +21,9 @@ class PlayerInfoBar extends StatelessWidget {
         : Colors.grey;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 50,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1E3E),
         borderRadius: BorderRadius.circular(12),
@@ -46,15 +47,15 @@ class PlayerInfoBar extends StatelessWidget {
         children: [
           // Avatar
           Container(
-            width: 48,
-            height: 48,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: avatarColor,
               shape: BoxShape.circle,
               border: stoneColor != null
                   ? Border.all(
                       color: stoneColor.color,
-                      width: 2,
+                      width: 1.5,
                     )
                   : null,
             ),
@@ -63,14 +64,14 @@ class PlayerInfoBar extends StatelessWidget {
                 player.initial,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
           // Player info
           Expanded(
@@ -84,7 +85,7 @@ class PlayerInfoBar extends StatelessWidget {
                         player.nickname,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -93,17 +94,17 @@ class PlayerInfoBar extends StatelessWidget {
                     if (player.isHost) ...[
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: Colors.amber.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(3),
                           border: Border.all(color: Colors.amber, width: 1),
                         ),
                         child: const Text(
                           'HOST',
                           style: TextStyle(
                             color: Colors.amber,
-                            fontSize: 10,
+                            fontSize: 8,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -111,12 +112,12 @@ class PlayerInfoBar extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   '${player.wins}W ${player.losses}L ${player.draws}D • ${player.winRate.toStringAsFixed(0)}%',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.6),
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -126,8 +127,8 @@ class PlayerInfoBar extends StatelessWidget {
           // Stone color indicator
           if (stoneColor != null)
             Container(
-              width: 32,
-              height: 32,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(

@@ -3,13 +3,13 @@ import '../../core/theme/app_theme.dart';
 
 /// Footer bar with action buttons (chat, forfeit) for game screen
 class GameFooterBar extends StatelessWidget {
-  final VoidCallback onChatPressed;
+  final VoidCallback? onChatPressed;
   final VoidCallback onForfeitPressed;
   final int unreadChatCount;
 
   const GameFooterBar({
     super.key,
-    required this.onChatPressed,
+    this.onChatPressed,
     required this.onForfeitPressed,
     this.unreadChatCount = 0,
   });
@@ -32,14 +32,15 @@ class GameFooterBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Chat button
-            _FooterButton(
-              icon: Icons.chat_bubble,
-              label: 'Chat',
-              onPressed: onChatPressed,
-              badgeCount: unreadChatCount,
-              color: AppColors.primary,
-            ),
+            // Chat button (only show on mobile)
+            if (onChatPressed != null)
+              _FooterButton(
+                icon: Icons.chat_bubble,
+                label: 'Chat',
+                onPressed: onChatPressed!,
+                badgeCount: unreadChatCount,
+                color: AppColors.primary,
+              ),
             // Forfeit button
             _FooterButton(
               icon: Icons.flag,

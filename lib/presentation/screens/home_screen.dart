@@ -89,49 +89,51 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
 
                   // Menu buttons
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 16,
-                    children: [
-                      AppButton.secondary(
-                        text: 'Profile',
-                        icon: Icons.person,
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => ProfileScreen(
-                                profileRepository: widget.profileRepository,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AppButton.secondary(
+                          text: 'Profile',
+                          icon: Icons.person,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ProfileScreen(
+                                  profileRepository: widget.profileRepository,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        width: 140,
-                      ),
-                      AppButton.secondary(
-                        text: 'Help',
-                        icon: Icons.help_outline,
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const HelpScreen(),
-                            ),
-                          );
-                        },
-                        width: 140,
-                      ),
-                      AppButton.secondary(
-                        text: 'About',
-                        icon: Icons.info_outline,
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const AboutScreen(),
-                            ),
-                          );
-                        },
-                        width: 140,
-                      ),
-                    ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        AppButton.secondary(
+                          text: 'Help',
+                          icon: Icons.help_outline,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const HelpScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        AppButton.secondary(
+                          text: 'About',
+                          icon: Icons.info_outline,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AboutScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -178,8 +180,12 @@ class _GameModeButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, size: 32),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
+            SizedBox(
+              width: 32,
+              child: Icon(icon, size: 32),
+            ),
+            const SizedBox(width: 20),
             Flexible(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

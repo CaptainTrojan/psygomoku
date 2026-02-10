@@ -85,13 +85,16 @@ class AppButton extends StatelessWidget {
     Widget buttonChild;
     
     if (icon != null) {
-      // Button with icon and text
+      // Button with icon and text (left-aligned for consistency)
       buttonChild = Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 24),
+          SizedBox(
+            width: 24,
+            child: Icon(icon, size: 20),
+          ),
           const SizedBox(width: 8),
           Text(text),
         ],

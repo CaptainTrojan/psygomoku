@@ -46,26 +46,32 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27), // Dark blue background
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Chat message listener (separate from builder to avoid setState during build)
-            BlocListener<ChatBloc, ChatState>(
-              listener: (context, chatState) {
-                final currentCount = chatState.messages.length;
-                if (!_isChatOpen && currentCount > _lastSeenMessageCount) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      setState(() {
-                        _unreadCount = currentCount - _lastSeenMessageCount;
-                      });
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 900;
+            
+            return Stack(
+              children: [
+                // Chat message listener (separate from builder to avoid setState during build)
+                BlocListener<ChatBloc, ChatState>(
+                  listener: (context, chatState) {
+                    if (!isDesktop) {
+                      final currentCount = chatState.messages.length;
+                      if (!_isChatOpen && currentCount > _lastSeenMessageCount) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _unreadCount = currentCount - _lastSeenMessageCount;
+                            });
+                          }
+                        });
+                      }
+                      if (_isChatOpen) {
+                        _lastSeenMessageCount = currentCount;
+                      }
                     }
-                  });
-                }
-                if (_isChatOpen) {
-                  _lastSeenMessageCount = currentCount;
-                }
-              },
-              child: BlocConsumer<GameBloc, GameState>(
+                  },
+                  child: BlocConsumer<GameBloc, GameState>(
                 listener: (context, state) {
                   // Close dialog when game restarts (rematch accepted)
                   if (_isDialogShowing && state is! GameOverState) {
@@ -163,155 +169,333 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     previewMarkedPosition = state.ourMarkedPosition;
                   }
 
-                  return Column(
-                    children: [
-                      // Main game area
-                      Expanded(
-                        child: Column(
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isDesktop = constraints.maxWidth >= 900;
+                      
+                      if (isDesktop) {
+                        // Desktop layout: Row with board on left, info panel on right
+                        return Column(
                           children: [
-                            // Top padding
-                            const SizedBox(height: 8),
-
-                            // Opponent info bar
-                            PlayerInfoBar(
-                              player: remotePlayer,
-                              isOpponent: true,
-                            ),
-
-                            // STATIC opponent status indicator area (always 60px)
-                            Container(
-                              height: 60,
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child:
-                                  state is GameActiveState &&
-                                          !state.isLocalPlayerTurn &&
-                                          state is! OpponentRevealingState &&
-                                          state is! RevealingState
-                                      ? TurnIndicator(state: state)
-                                      : const SizedBox.shrink(),
-                            ),
-
-                            // Timer (if active)
-                            if (state is GameActiveState && state.hasTimer)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: TimerWidget(
-                                  remainingSeconds: state.remainingSeconds!,
-                                  isLocalPlayerTurn: state.isLocalPlayerTurn,
-                                ),
-                              ),
-
-                            // Game board (centered and sized appropriately)
                             Expanded(
-                              child: Center(
-                                child: AspectRatio(
-                                  aspectRatio: 1.0,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 600,
-                                      maxHeight: 600,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: GameBoardWidget(
-                                        board: board,
-                                        onPositionTapped:
-                                            state is GameActiveState &&
-                                                    state.isLocalPlayerTurn
-                                                ? (position) {
-                                                  context.read<GameBloc>().add(
-                                                    SelectPositionEvent(
-                                                      position,
-                                                    ),
-                                                  );
-                                                }
-                                                : null,
-                                        selectedPosition:
-                                            state is GameActiveState
-                                                ? state.selectedPosition
-                                                : null,
-                                        guessMarkerPosition:
-                                            guessMissed
-                                                ? lastGuessPosition
-                                                : null,
-                                        guessMarkerColor:
-                                            guessMissed
-                                                ? guessMarkerColor
-                                                : null,
-                                        previewMarkedPosition:
-                                            previewMarkedPosition,
-                                        lastPlayedPosition:
-                                            isInMarkingPhase
-                                                ? lastMarkPosition
-                                                : null,
-                                        localPlayerColor:
-                                            localPlayer.stoneColor,
-                                        remotePlayerColor:
-                                            remotePlayer.stoneColor,
-                                        onConfirmSelection:
-                                            state is GameActiveState
-                                                ? () {
-                                                  if (state is MarkingState) {
-                                                    context.read<GameBloc>().add(
-                                                      const ConfirmMarkEvent(),
-                                                    );
-                                                  } else if (state
-                                                      is GuessingState) {
-                                                    context.read<GameBloc>().add(
-                                                      const ConfirmGuessEvent(),
-                                                    );
-                                                  }
-                                                }
-                                                : null,
+                              child: Row(
+                                children: [
+                                  // Left side: Game board
+                                  Flexible(
+                                    flex: 2,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(minWidth: 600),
+                                      child: Center(
+                                        child: AspectRatio(
+                                          aspectRatio: 1.0,
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 600,
+                                              maxHeight: 600,
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(16.0),
+                                              child: GameBoardWidget(
+                                                board: board,
+                                                onPositionTapped:
+                                                    state is GameActiveState &&
+                                                            state.isLocalPlayerTurn
+                                                        ? (position) {
+                                                          context.read<GameBloc>().add(
+                                                            SelectPositionEvent(position),
+                                                          );
+                                                        }
+                                                        : null,
+                                                selectedPosition:
+                                                    state is GameActiveState
+                                                        ? state.selectedPosition
+                                                        : null,
+                                                guessMarkerPosition:
+                                                    guessMissed
+                                                        ? lastGuessPosition
+                                                        : null,
+                                                guessMarkerColor:
+                                                    guessMissed
+                                                        ? guessMarkerColor
+                                                        : null,
+                                                previewMarkedPosition:
+                                                    previewMarkedPosition,
+                                                lastPlayedPosition:
+                                                    isInMarkingPhase
+                                                        ? lastMarkPosition
+                                                        : null,
+                                                localPlayerColor:
+                                                    localPlayer.stoneColor,
+                                                remotePlayerColor:
+                                                    remotePlayer.stoneColor,
+                                                onConfirmSelection:
+                                                    state is GameActiveState
+                                                        ? () {
+                                                          if (state is MarkingState) {
+                                                            context.read<GameBloc>().add(
+                                                              const ConfirmMarkEvent(),
+                                                            );
+                                                          } else if (state is GuessingState) {
+                                                            context.read<GameBloc>().add(
+                                                              const ConfirmGuessEvent(),
+                                                            );
+                                                          }
+                                                        }
+                                                        : null,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
+                                  
+                                  // Right side: Info panel
+                                  Flexible(
+                                    flex: 1,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 400),
+                                      child: Column(
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          
+                                          // Opponent info bar
+                                          PlayerInfoBar(
+                                            player: remotePlayer,
+                                            isOpponent: true,
+                                          ),
+                                          
+                                          // Opponent turn indicator
+                                          Container(
+                                            height: 60,
+                                            alignment: Alignment.center,
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            child:
+                                                state is GameActiveState &&
+                                                        !state.isLocalPlayerTurn &&
+                                                        state is! OpponentRevealingState &&
+                                                        state is! RevealingState
+                                                    ? TurnIndicator(state: state)
+                                                    : const SizedBox.shrink(),
+                                          ),
+                                          
+                                          // Timer
+                                          if (state is GameActiveState && state.hasTimer)
+                                            Padding(
+                                              padding: const EdgeInsets.only(bottom: 8),
+                                              child: TimerWidget(
+                                                remainingSeconds: state.remainingSeconds!,
+                                                isLocalPlayerTurn: state.isLocalPlayerTurn,
+                                              ),
+                                            ),
+                                          
+                                          const Spacer(),
+                                          
+                                          // Chat widget (always visible on desktop)
+                                          Expanded(
+                                            flex: 3,
+                                            child: Container(
+                                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              child: DraggableChatPanel(isOpen: true, onToggle: () {}),
+                                            ),
+                                          ),
+                                          
+                                          const Spacer(),
+                                          
+                                          // Local turn indicator
+                                          Container(
+                                            height: 60,
+                                            alignment: Alignment.center,
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            child:
+                                                state is GameActiveState &&
+                                                        state.isLocalPlayerTurn &&
+                                                        state is! OpponentRevealingState &&
+                                                        state is! RevealingState
+                                                    ? TurnIndicator(state: state)
+                                                    : const SizedBox.shrink(),
+                                          ),
+                                          
+                                          // Local player info bar
+                                          PlayerInfoBar(
+                                            player: localPlayer,
+                                            isOpponent: false,
+                                          ),
+                                          
+                                          const SizedBox(height: 8),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Footer bar (no chat button on desktop)
+                            GameFooterBar(
+                              onChatPressed: null,
+                              onForfeitPressed: () => _showForfeitDialog(context),
+                              unreadChatCount: 0,
+                            ),
+                          ],
+                        );
+                      } else {
+                        // Mobile layout: Keep existing Column layout
+                        return Column(
+                          children: [
+                            // Main game area
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  // Top padding
+                                  const SizedBox(height: 8),
+
+                                  // Opponent info bar
+                                  PlayerInfoBar(
+                                    player: remotePlayer,
+                                    isOpponent: true,
+                                  ),
+
+                                  // STATIC opponent status indicator area (always 60px)
+                                  Container(
+                                    height: 60,
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child:
+                                        state is GameActiveState &&
+                                                !state.isLocalPlayerTurn &&
+                                                state is! OpponentRevealingState &&
+                                                state is! RevealingState
+                                            ? TurnIndicator(state: state)
+                                            : const SizedBox.shrink(),
+                                  ),
+
+                                  // Timer (if active)
+                                  if (state is GameActiveState && state.hasTimer)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: TimerWidget(
+                                        remainingSeconds: state.remainingSeconds!,
+                                        isLocalPlayerTurn: state.isLocalPlayerTurn,
+                                      ),
+                                    ),
+
+                                  // Game board (centered and sized appropriately)
+                                  Expanded(
+                                    child: Center(
+                                      child: AspectRatio(
+                                        aspectRatio: 1.0,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 600,
+                                            maxHeight: 600,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: GameBoardWidget(
+                                              board: board,
+                                              onPositionTapped:
+                                                  state is GameActiveState &&
+                                                          state.isLocalPlayerTurn
+                                                      ? (position) {
+                                                        context.read<GameBloc>().add(
+                                                          SelectPositionEvent(
+                                                            position,
+                                                          ),
+                                                        );
+                                                      }
+                                                      : null,
+                                              selectedPosition:
+                                                  state is GameActiveState
+                                                      ? state.selectedPosition
+                                                      : null,
+                                              guessMarkerPosition:
+                                                  guessMissed
+                                                      ? lastGuessPosition
+                                                      : null,
+                                              guessMarkerColor:
+                                                  guessMissed
+                                                      ? guessMarkerColor
+                                                      : null,
+                                              previewMarkedPosition:
+                                                  previewMarkedPosition,
+                                              lastPlayedPosition:
+                                                  isInMarkingPhase
+                                                      ? lastMarkPosition
+                                                      : null,
+                                              localPlayerColor:
+                                                  localPlayer.stoneColor,
+                                              remotePlayerColor:
+                                                  remotePlayer.stoneColor,
+                                              onConfirmSelection:
+                                                  state is GameActiveState
+                                                      ? () {
+                                                        if (state is MarkingState) {
+                                                          context.read<GameBloc>().add(
+                                                            const ConfirmMarkEvent(),
+                                                          );
+                                                        } else if (state
+                                                            is GuessingState) {
+                                                          context.read<GameBloc>().add(
+                                                            const ConfirmGuessEvent(),
+                                                          );
+                                                        }
+                                                      }
+                                                      : null,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // STATIC local status indicator area (always 60px)
+                                  Container(
+                                    height: 60,
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child:
+                                        state is GameActiveState &&
+                                                state.isLocalPlayerTurn &&
+                                                state is! OpponentRevealingState &&
+                                                state is! RevealingState
+                                            ? TurnIndicator(state: state)
+                                            : const SizedBox.shrink(),
+                                  ),
+
+                                  // Local player info bar
+                                  PlayerInfoBar(
+                                    player: localPlayer,
+                                    isOpponent: false,
+                                  ),
+
+                                  // Bottom padding
+                                  const SizedBox(height: 8),
+                                ],
                               ),
                             ),
 
-                            // STATIC local status indicator area (always 60px)
-                            Container(
-                              height: 60,
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child:
-                                  state is GameActiveState &&
-                                          state.isLocalPlayerTurn &&
-                                          state is! OpponentRevealingState &&
-                                          state is! RevealingState
-                                      ? TurnIndicator(state: state)
-                                      : const SizedBox.shrink(),
+                            // Footer bar with buttons
+                            GameFooterBar(
+                              onChatPressed: _toggleChat,
+                              onForfeitPressed: () => _showForfeitDialog(context),
+                              unreadChatCount: _unreadCount,
                             ),
-
-                            // Local player info bar
-                            PlayerInfoBar(
-                              player: localPlayer,
-                              isOpponent: false,
-                            ),
-
-                            // Bottom padding
-                            const SizedBox(height: 8),
                           ],
-                        ),
-                      ),
-
-                      // Footer bar with buttons
-                      GameFooterBar(
-                        onChatPressed: _toggleChat,
-                        onForfeitPressed: () => _showForfeitDialog(context),
-                        unreadChatCount: _unreadCount,
-                      ),
-                    ],
+                        );
+                      }
+                    },
                   );
                 },
               ),
             ),
 
-            // Draggable chat panel overlay
-            DraggableChatPanel(isOpen: _isChatOpen, onToggle: _toggleChat),
+            // Draggable chat panel overlay (mobile only)
+            if (!isDesktop)
+              DraggableChatPanel(isOpen: _isChatOpen, onToggle: _toggleChat),
           ],
+        );
+          },
         ),
       ),
     );

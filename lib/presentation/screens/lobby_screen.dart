@@ -248,23 +248,26 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Widget _buildHostManualView(BuildContext context, String offerString) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 20),
-          const Text(
-            'STEP 1: SHARE YOUR OFFER',
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                'STEP 1: SHARE YOUR OFFER',
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          
-          // Offer field
-          Container(
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              // Offer field
+              Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.backgroundMedium,
@@ -278,12 +281,12 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 fontSize: 10,
                 fontFamily: 'Courier',
               ),
-              maxLines: 6,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          AppButton.primary(
+                maxLines: 6,
+              ),
+              ),
+              const SizedBox(height: 12),
+              
+              AppButton.primary(
             text: 'COPY OFFER',
             icon: Icons.copy,
             onPressed: () {
@@ -292,66 +295,68 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 SnackBar(
                   content: const Text('Offer copied!'),
                   backgroundColor: AppColors.primary,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 40),
-          
-          const Text(
-            'STEP 2: PASTE OPPONENT\'S ANSWER',
+                  ),
+                );
+              },
+              ),
+              const SizedBox(height: 40),
+              
+              const Text(
+                'STEP 2: PASTE OPPONENT\'S ANSWER',
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
-            textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              TextField(
+                controller: _manualAnswerController,
+                decoration: InputDecoration(
+                  hintText: 'Paste answer string here...',
+                  filled: true,
+                  fillColor: AppColors.backgroundMedium,
+                ),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 10),
+                maxLines: 4,
+              ),
+              const SizedBox(height: 16),
+              
+              AppButton.primary(
+                text: 'CONNECT',
+                icon: Icons.link,
+                onPressed: () {
+                  final answer = _manualAnswerController.text.trim();
+                  if (answer.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Please paste the answer'),
+                        backgroundColor: AppColors.warning,
+                      ),
+                    );
+                    return;
+                  }
+                  context.read<ConnectionBloc>().add(
+                    bloc_event.ManualHostReceiveAnswerEvent(answer),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              TextButton(
+                onPressed: () {
+                  context.read<ConnectionBloc>().add(const bloc_event.ResetConnectionEvent());
+                },
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          
-          TextField(
-            controller: _manualAnswerController,
-            decoration: InputDecoration(
-              hintText: 'Paste answer string here...',
-              filled: true,
-              fillColor: AppColors.backgroundMedium,
-            ),
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 10),
-            maxLines: 4,
-          ),
-          const SizedBox(height: 16),
-          
-          AppButton.primary(
-            text: 'CONNECT',
-            icon: Icons.link,
-            onPressed: () {
-              final answer = _manualAnswerController.text.trim();
-              if (answer.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please paste the answer'),
-                    backgroundColor: AppColors.warning,
-                  ),
-                );
-                return;
-              }
-              context.read<ConnectionBloc>().add(
-                bloc_event.ManualHostReceiveAnswerEvent(answer),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          
-          TextButton(
-            onPressed: () {
-              context.read<ConnectionBloc>().add(const bloc_event.ResetConnectionEvent());
-            },
-            child: const Text(
-              'CANCEL',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -484,9 +489,12 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Widget _buildJoinModeSelection(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           const SizedBox(height: 40),
           const Text(
             'JOIN GAME',
@@ -516,12 +524,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
           ),
           const SizedBox(height: 16),
           
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _joinCodeController,
-                  decoration: InputDecoration(
+          TextField(
+            controller: _joinCodeController,
+            decoration: InputDecoration(
                     hintText: '1234',
                     hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
                     filled: true,
@@ -543,39 +548,28 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ),
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                onPressed: () {
+              maxLength: 4,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+          const SizedBox(height: 16),
+          AppButton.primary(
+            text: 'JOIN',
+            onPressed: () {
                   final code = _joinCodeController.text.trim();
                   if (code.length != 4) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Enter a 4-digit code')),
                     );
-                    return;
-                  }
-                  context.read<ConnectionBloc>().add(
-                  bloc_event.JoinGameEvent(
-                      mode: bloc_state.SignalingMode.auto,
-                      sessionCode: code,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  return;
+                }
+                context.read<ConnectionBloc>().add(
+                bloc_event.JoinGameEvent(
+                    mode: bloc_state.SignalingMode.auto,
+                    sessionCode: code,
                   ),
-                ),
-                child: const Text('JOIN', style: TextStyle(letterSpacing: 2)),
-              ),
-            ],
-          ),
+                );
+              },
+            ),
           const SizedBox(height: 40),
           
           Divider(color: AppColors.backgroundMedium, thickness: 2),
@@ -618,7 +612,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
           ),
           const SizedBox(height: 16),
           
-          ElevatedButton.icon(
+          AppButton.primary(
+            text: 'JOIN WITH MANUAL CODE',
+            icon: Icons.login,
             onPressed: () {
               final offer = _manualOfferController.text.trim();
               if (offer.isEmpty) {
@@ -634,13 +630,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ),
               );
             },
-            icon: const Icon(Icons.login),
-            label: const Text('JOIN WITH MANUAL CODE'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
-              padding: const EdgeInsets.all(16),
-            ),
           ),
           const SizedBox(height: 40),
           
@@ -656,6 +645,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
             ),
           ),
         ],
+      ),
+      ),
       ),
     );
   }

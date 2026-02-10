@@ -83,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
       _loadProfile();
+      Navigator.pop(context);
     }
   }
 
