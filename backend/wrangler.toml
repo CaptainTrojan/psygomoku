@@ -17,8 +17,6 @@ new_classes = ["SignalingRoom"]
 [site]
 bucket = "../build/web"
 
-# KV namespace for rate limiting
+# KV namespace for rate limiting (auto-created on first deploy)
 [[kv_namespaces]]
 binding = "ASSETS"
-id = "preview_id"
-preview_id = "preview_id"
