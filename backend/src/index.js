@@ -5,7 +5,14 @@
  * - POST /api/session - Create new session code
  * - GET /ws/:roomCode - WebSocket upgrade for signaling
  * - GET /* - Serve static Flutter web assets
+ * 
+ * Global bindings injected by Wrangler (Workers Sites):
+ * @global {KVNamespace} __STATIC_CONTENT - KV namespace for static assets
+ * @global {string} __STATIC_CONTENT_MANIFEST - Manifest of static assets
  */
+
+// @ts-ignore - Globals injected by Wrangler at build time
+/* global __STATIC_CONTENT, __STATIC_CONTENT_MANIFEST */
 
 import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
 
@@ -152,16 +159,29 @@ export default {
 
       // Serve static assets (Flutter web build)
       try {
+        // Check if Workers Sites is configured
+        if (typeof __STATIC_CONTENT === 'undefined' || typeof __STATIC_CONTENT_MANIFEST === 'undefined') {
+          return new Response(JSON.stringify({
+            error: 'Workers Sites not configured',
+            hint: 'Static content bindings are missing. Ensure [site] is configured in wrangler.toml and assets were uploaded during deployment.',
+            hasStaticContent: typeof __STATIC_CONTENT !== 'undefined',
+            hasManifest: typeof __STATIC_CONTENT_MANIFEST !== 'undefined'
+          }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          });
+        }
+
+        // Don't pass ASSET_NAMESPACE/ASSET_MANIFEST - let kv-asset-handler use globals
         const response = await getAssetFromKV(
           {
             request,
             waitUntil(promise) {
               return ctx.waitUntil(promise);
             },
-          },
-          {
-            ASSET_NAMESPACE: env.__STATIC_CONTENT,
-            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
           }
         );
 
@@ -187,16 +207,13 @@ export default {
               request
             );
             
+            // Don't pass options - let kv-asset-handler use globals
             const response = await getAssetFromKV(
               {
                 request: indexRequest,
                 waitUntil(promise) {
                   return ctx.waitUntil(promise);
                 },
-              },
-              {
-                ASSET_NAMESPACE: env.__STATIC_CONTENT,
-                ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
               }
             );
 
