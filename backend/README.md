@@ -6,6 +6,7 @@ Cloudflare Workers + Durable Objects signaling server for WebRTC P2P connections
 
 - **Worker** (`src/index.js`): HTTP/WebSocket router + static asset serving
 - **Durable Object** (`src/room.js`): Stateful signaling room per session code
+- **Workers Sites**: Serves Flutter web build from same Worker
 
 ## Development
 
@@ -47,7 +48,7 @@ Upgrade to WebSocket for signaling. Room code must be 4 digits.
 Edit `wrangler.toml`:
 - `name`: Worker name
 - `kv_namespaces.id`: Production KV namespace ID (after first deploy)
-- `site.bucket`: Path to Flutter web build output
+- `site.bucket`: Path to Flutter web build output (default: `../build/web`)
 
 ## Rate Limiting
 

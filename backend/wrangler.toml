@@ -13,11 +13,11 @@ bindings = [
 tag = "v1"
 new_classes = ["SignalingRoom"]
 
-# Workers Sites configuration for serving Flutter web build
+# Workers Sites - serve Flutter web build
 [site]
 bucket = "../build/web"
 
-# KV namespace for static assets
+# KV namespace for rate limiting
 [[kv_namespaces]]
 binding = "ASSETS"
 id = "preview_id"

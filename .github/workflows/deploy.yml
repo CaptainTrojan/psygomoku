@@ -5,9 +5,24 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Required GitHub Secrets:
+# Cloudflare Workers:
+#   - CF_API_TOKEN: Cloudflare API token with Workers permissions
+#   - CF_ACCOUNT_ID: Your Cloudflare account ID
+#   - SIGNALING_URL: Your Worker URL (e.g., https://psygomoku-worker.your-subdomain.workers.dev)
+#     Note: Frontend and backend are served from the same Worker
+#
+
+# Android (Play Store):
+#   - ANDROID_KEYSTORE_BASE64: Base64-encoded upload keystore (.jks file)
+#   - KEYSTORE_PASSWORD: Password for the keystore
+#   - KEY_PASSWORD: Password for the key
+#   - KEY_ALIAS: Alias of the key in the keystore
+#   - PLAY_STORE_JSON: Google Play Console service account JSON (plain text)
+
 jobs:
-  deploy-web:
-    name: Deploy Web & Backend to Cloudflare
+  setup:
+    name: Setup & Generate Code
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,23 +34,53 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
       - name: Get Flutter dependencies
         run: flutter pub get
 
       - name: Generate code (freezed, json_serializable)
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
+      - name: Upload generated code
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-code
+          path: |
+            .dart_tool/
+            lib/**/*.freezed.dart
+            lib/**/*.g.dart
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Cloudflare Workers
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Download generated code
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-code
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
       - name: Build Flutter Web
         run: |
           flutter build web --release \
             --dart-define=SIGNALING_URL=${{ secrets.SIGNALING_URL }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Wrangler dependencies
         working-directory: ./backend
@@ -47,17 +92,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build
-          path: build/web/
-          retention-days: 7
 
   deploy-android:
     name: Deploy Android to Play Store
     runs-on: ubuntu-latest
+    needs: setup
+    if: false  # Temporarily disabled - flutter_webrtc compatibility issue with Flutter 3.38.9 + Android
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,6 +107,11 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Download generated code
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-code
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -87,9 +132,6 @@ jobs:
 
       - name: Get Flutter dependencies
         run: flutter pub get
-
-      - name: Generate code (freezed, json_serializable)
-        run: flutter pub run build_runner build --delete-conflicting-outputs
 
       - name: Build Android App Bundle
         run: flutter build appbundle --release

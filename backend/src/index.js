@@ -90,9 +90,21 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // CORS headers
+    // CORS headers - allow same origin (production) or localhost (development)
+    const origin = request.headers.get('Origin');
+    const requestHost = url.host;
+    let allowedOrigin = '*';
+    
+    if (origin) {
+      const originUrl = new URL(origin);
+      // Allow if same host (production) or localhost dev (different ports)
+      if (originUrl.host === requestHost || originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
+        allowedOrigin = origin;
+      }
+    }
+
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
@@ -153,36 +165,8 @@ export default {
         return stub.fetch(request);
       }
 
-      // Route: Serve static assets (Flutter web build)
+      // Serve static assets (Flutter web build)
       try {
-        // Check if static content bindings are available
-        if (!env.__STATIC_CONTENT || !env.__STATIC_CONTENT_MANIFEST) {
-          return new Response(
-            JSON.stringify({
-              message: 'Backend API ready',
-              status: 'running',
-              hint: 'Static assets not configured. Run "flutter build web" and deploy to serve the frontend.',
-              endpoints: {
-                sessionCreate: 'POST /api/session',
-                websocket: 'GET /ws/:roomCode',
-              },
-            }),
-            {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                ...corsHeaders,
-              },
-            }
-          );
-        }
-
-        const options = {
-          ASSET_NAMESPACE: env.__STATIC_CONTENT,
-          ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
-        };
-
-        // Try to serve the asset
         const response = await getAssetFromKV(
           {
             request,
@@ -190,7 +174,10 @@ export default {
               return ctx.waitUntil(promise);
             },
           },
-          options
+          {
+            ASSET_NAMESPACE: env.__STATIC_CONTENT,
+            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+          }
         );
 
         // Add cache headers for immutable assets
