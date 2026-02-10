@@ -159,14 +159,12 @@ export default {
 
       // Serve static assets (Flutter web build)
       try {
-        // Check if Workers Sites is configured
-        if (!env.__STATIC_CONTENT || !env.__STATIC_CONTENT_MANIFEST) {
+        // Check if Workers Sites KV namespace is configured
+        if (!env.__STATIC_CONTENT) {
           return new Response(JSON.stringify({
             error: 'Workers Sites not configured',
-            hint: 'Static content bindings are missing. Ensure [site] is configured in wrangler.toml and assets were uploaded during deployment.',
-            envKeys: Object.keys(env),
-            hasStaticContent: !!env.__STATIC_CONTENT,
-            hasManifest: !!env.__STATIC_CONTENT_MANIFEST
+            hint: '__STATIC_CONTENT KV namespace binding is missing.',
+            availableBindings: Object.keys(env)
           }), {
             status: 500,
             headers: {
@@ -176,7 +174,7 @@ export default {
           });
         }
 
-        // Pass bindings from env to kv-asset-handler
+        // Pass KV namespace, let manifest default to {} (will fetch from KV)
         const response = await getAssetFromKV(
           {
             request,
@@ -186,7 +184,7 @@ export default {
           },
           {
             ASSET_NAMESPACE: env.__STATIC_CONTENT,
-            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+            // ASSET_MANIFEST not passed - will use default {} and fetch from KV
           }
         );
 
@@ -212,7 +210,6 @@ export default {
               request
             );
             
-            // Pass bindings from env to kv-asset-handler
             const response = await getAssetFromKV(
               {
                 request: indexRequest,
@@ -222,7 +219,7 @@ export default {
               },
               {
                 ASSET_NAMESPACE: env.__STATIC_CONTENT,
-                ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+                // ASSET_MANIFEST not passed - will use default {} and fetch from KV
               }
             );
 
