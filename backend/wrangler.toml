@@ -16,7 +16,3 @@ new_classes = ["SignalingRoom"]
 # Workers Sites - serve Flutter web build
 [site]
 bucket = "../build/web"
-
-# KV namespace for rate limiting (auto-created on first deploy)
-[[kv_namespaces]]
-binding = "ASSETS"

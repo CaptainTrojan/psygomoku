@@ -117,21 +117,6 @@ export default {
     try {
       // Route: Create new session
       if (path === '/api/session' && request.method === 'POST') {
-        const ip = getClientIP(request);
-        const rateLimiter = new RateLimiter(env.ASSETS, 10, 3600000);
-        
-        if (!(await rateLimiter.check(ip))) {
-          return new Response(JSON.stringify({
-            error: 'Rate limit exceeded. Try again later.'
-          }), {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            }
-          });
-        }
-
         const sessionCode = generateSessionCode();
         
         return new Response(JSON.stringify({
