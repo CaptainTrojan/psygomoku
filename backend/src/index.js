@@ -160,12 +160,13 @@ export default {
       // Serve static assets (Flutter web build)
       try {
         // Check if Workers Sites is configured
-        if (typeof __STATIC_CONTENT === 'undefined' || typeof __STATIC_CONTENT_MANIFEST === 'undefined') {
+        if (!env.__STATIC_CONTENT || !env.__STATIC_CONTENT_MANIFEST) {
           return new Response(JSON.stringify({
             error: 'Workers Sites not configured',
             hint: 'Static content bindings are missing. Ensure [site] is configured in wrangler.toml and assets were uploaded during deployment.',
-            hasStaticContent: typeof __STATIC_CONTENT !== 'undefined',
-            hasManifest: typeof __STATIC_CONTENT_MANIFEST !== 'undefined'
+            envKeys: Object.keys(env),
+            hasStaticContent: !!env.__STATIC_CONTENT,
+            hasManifest: !!env.__STATIC_CONTENT_MANIFEST
           }), {
             status: 500,
             headers: {
@@ -175,13 +176,17 @@ export default {
           });
         }
 
-        // Don't pass ASSET_NAMESPACE/ASSET_MANIFEST - let kv-asset-handler use globals
+        // Pass bindings from env to kv-asset-handler
         const response = await getAssetFromKV(
           {
             request,
             waitUntil(promise) {
               return ctx.waitUntil(promise);
             },
+          },
+          {
+            ASSET_NAMESPACE: env.__STATIC_CONTENT,
+            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
           }
         );
 
@@ -207,13 +212,17 @@ export default {
               request
             );
             
-            // Don't pass options - let kv-asset-handler use globals
+            // Pass bindings from env to kv-asset-handler
             const response = await getAssetFromKV(
               {
                 request: indexRequest,
                 waitUntil(promise) {
                   return ctx.waitUntil(promise);
                 },
+              },
+              {
+                ASSET_NAMESPACE: env.__STATIC_CONTENT,
+                ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
               }
             );
 
