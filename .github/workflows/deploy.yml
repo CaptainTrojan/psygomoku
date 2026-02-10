@@ -32,8 +32,7 @@ jobs:
       - name: Build Flutter Web
         run: |
           flutter build web --release \
-            --dart-define=SIGNALING_URL=${{ secrets.SIGNALING_URL }} \
-            --web-renderer canvaskit
+            --dart-define=SIGNALING_URL=${{ secrets.SIGNALING_URL }}
 
       - name: Install Wrangler dependencies
         working-directory: ./backend
