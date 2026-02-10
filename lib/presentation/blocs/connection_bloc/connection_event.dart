@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'connection_state.dart';
 
 /// Events for ConnectionBloc
 abstract class ConnectionEvent extends Equatable {
@@ -10,37 +11,53 @@ abstract class ConnectionEvent extends Equatable {
 
 /// User wants to host a game
 class HostGameEvent extends ConnectionEvent {
-  const HostGameEvent();
+  const HostGameEvent(this.mode);
+
+  final SignalingMode mode;
+
+  @override
+  List<Object?> get props => [mode];
 }
 
-/// User wants to join a game with signaling data
+/// User wants to join a game
 class JoinGameEvent extends ConnectionEvent {
-  const JoinGameEvent(this.signalData);
+  const JoinGameEvent({
+    required this.mode,
+    this.sessionCode,
+    this.offerString,
+  });
 
-  final String signalData;
+  final SignalingMode mode;
+  final String? sessionCode; // For auto mode
+  final String? offerString; // For manual mode
 
   @override
-  List<Object?> get props => [signalData];
+  List<Object?> get props => [mode, sessionCode, offerString];
 }
 
-/// Host receives answer from joiner
-class HostReceiveAnswerEvent extends ConnectionEvent {
-  const HostReceiveAnswerEvent(this.answerData);
+/// Manual mode: Host receives answer from UI
+class ManualHostReceiveAnswerEvent extends ConnectionEvent {
+  const ManualHostReceiveAnswerEvent(this.answerString);
 
-  final String answerData;
+  final String answerString;
 
   @override
-  List<Object?> get props => [answerData];
+  List<Object?> get props => [answerString];
 }
 
-/// Host has shared offer and is ready to receive answer
-class HostReadyForAnswerEvent extends ConnectionEvent {
-  const HostReadyForAnswerEvent(this.signalData);
+/// Manual mode: Joiner receives offer from UI (if not in JoinGameEvent)
+class ManualJoinerReceiveOfferEvent extends ConnectionEvent {
+  const ManualJoinerReceiveOfferEvent(this.offerString);
 
-  final String signalData;
+  final String offerString;
 
   @override
-  List<Object?> get props => [signalData];
+  List<Object?> get props => [offerString];
+}
+
+/// Reset connection to idle
+class ResetConnectionEvent extends ConnectionEvent {
+  const ResetConnectionEvent();
 }
 
 /// Connection has been established successfully
@@ -81,4 +98,24 @@ class MessageReceivedEvent extends ConnectionEvent {
 /// Disconnect from opponent
 class DisconnectEvent extends ConnectionEvent {
   const DisconnectEvent();
+}
+
+/// Internal: Manual mode offer generated
+class ManualOfferGeneratedEvent extends ConnectionEvent {
+  const ManualOfferGeneratedEvent(this.offerString);
+
+  final String offerString;
+
+  @override
+  List<Object?> get props => [offerString];
+}
+
+/// Internal: Manual mode answer generated
+class ManualAnswerGeneratedEvent extends ConnectionEvent {
+  const ManualAnswerGeneratedEvent(this.answerString);
+
+  final String answerString;
+
+  @override
+  List<Object?> get props => [answerString];
 }

@@ -1,0 +1,24 @@
+{
+  "name": "psygomoku-backend",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers signaling server for Psygomoku",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "webrtc",
+    "signaling",
+    "cloudflare-workers"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^4.63.0"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.4"
+  }
+}

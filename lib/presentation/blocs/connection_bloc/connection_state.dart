@@ -1,5 +1,14 @@
 import 'package:equatable/equatable.dart';
 
+/// Signaling mode selection
+enum SignalingMode {
+  /// Manual copy/paste (offline, no server)
+  manual,
+  
+  /// Auto server-based (4-digit code)
+  auto,
+}
+
 /// States for ConnectionBloc
 abstract class ConnectionState extends Equatable {
   const ConnectionState();
@@ -15,22 +24,28 @@ class ConnectionIdleState extends ConnectionState {
 
 /// Hosting a game, waiting for opponent
 class HostingState extends ConnectionState {
-  const HostingState(this.signalData);
+  const HostingState({
+    required this.mode,
+    this.sessionCode,
+    this.offerString,
+  });
 
-  final String signalData; // SDP offer for QR code / link
+  final SignalingMode mode;
+  final String? sessionCode; // For auto mode (4-digit code)
+  final String? offerString; // For manual mode (compressed SDP offer)
 
   @override
-  List<Object?> get props => [signalData];
+  List<Object?> get props => [mode, sessionCode, offerString];
 }
 
-/// Host waiting to receive answer from joiner
-class HostingWaitingForAnswerState extends ConnectionState {
-  const HostingWaitingForAnswerState(this.signalData);
+/// Manual mode: Host waiting to receive answer from UI
+class ManualWaitingForAnswerState extends ConnectionState {
+  const ManualWaitingForAnswerState(this.offerString);
 
-  final String signalData; // Original SDP offer
+  final String offerString;
 
   @override
-  List<Object?> get props => [signalData];
+  List<Object?> get props => [offerString];
 }
 
 /// Joining a game, establishing connection
@@ -38,14 +53,14 @@ class JoiningState extends ConnectionState {
   const JoiningState();
 }
 
-/// Joiner has created answer, waiting for connection
-class JoiningWaitingForHostState extends ConnectionState {
-  const JoiningWaitingForHostState(this.answerData);
+/// Manual mode: Joiner has answer ready to copy
+class ManualAnswerReadyState extends ConnectionState {
+  const ManualAnswerReadyState(this.answerString);
 
-  final String answerData; // SDP answer to send back to host
+  final String answerString;
 
   @override
-  List<Object?> get props => [answerData];
+  List<Object?> get props => [answerString];
 }
 
 /// Successfully connected to opponent

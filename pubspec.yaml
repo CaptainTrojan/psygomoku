@@ -46,6 +46,8 @@ dependencies:
   # Networking
   flutter_webrtc: ^0.11.7
   nearby_connections: ^4.3.0
+  web_socket_channel: ^3.0.1
+  http: ^1.2.0
 
   # Cryptography
   cryptography: ^2.5.0
@@ -54,10 +56,6 @@ dependencies:
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-
-  # QR Code
-  qr_flutter: ^4.1.0
-  mobile_scanner: ^3.5.2
 
   # Utilities
   uuid: ^4.2.2

@@ -1,0 +1,24 @@
+name = "psygomoku-worker"
+main = "src/index.js"
+compatibility_date = "2026-02-09"
+
+# Durable Objects binding
+[durable_objects]
+bindings = [
+  { name = "SIGNALING_ROOMS", class_name = "SignalingRoom" }
+]
+
+# Migration for Durable Object
+[[migrations]]
+tag = "v1"
+new_classes = ["SignalingRoom"]
+
+# Workers Sites configuration for serving Flutter web build
+[site]
+bucket = "../build/web"
+
+# KV namespace for static assets
+[[kv_namespaces]]
+binding = "ASSETS"
+id = "preview_id"
+preview_id = "preview_id"

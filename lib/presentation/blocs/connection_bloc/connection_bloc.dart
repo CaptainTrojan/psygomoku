@@ -1,8 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/logging/app_logger.dart';
+import '../../../core/config/app_config.dart';
 import '../../../infrastructure/transport/i_game_transport.dart' as transport_pkg;
 import '../../../infrastructure/transport/webrtc_transport.dart';
+import '../../../infrastructure/transport/signaling/manual_signaling_strategy.dart';
+import '../../../infrastructure/transport/signaling/auto_signaling_strategy.dart';
+import '../../../infrastructure/transport/signaling/signaling_state.dart';
 import 'connection_event.dart';
 import 'connection_state.dart';
 
@@ -11,24 +17,29 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   ConnectionBloc() : super(const ConnectionIdleState()) {
     on<HostGameEvent>(_onHostGame);
     on<JoinGameEvent>(_onJoinGame);
-    on<HostReceiveAnswerEvent>(_onHostReceiveAnswer);
-    on<HostReadyForAnswerEvent>(_onHostReadyForAnswer);
+    on<ManualHostReceiveAnswerEvent>(_onManualHostReceiveAnswer);
+    on<ManualJoinerReceiveOfferEvent>(_onManualJoinerReceiveOffer);
+    on<ResetConnectionEvent>(_onResetConnection);
     on<ConnectionEstablishedEvent>(_onConnectionEstablished);
     on<ConnectionFailedEvent>(_onConnectionFailed);
     on<SendTestMessageEvent>(_onSendTestMessage);
     on<MessageReceivedEvent>(_onMessageReceived);
     on<DisconnectEvent>(_onDisconnect);
+    on<ManualOfferGeneratedEvent>(_onManualOfferGenerated);
+    on<ManualAnswerGeneratedEvent>(_onManualAnswerGenerated);
   }
 
   final _log = AppLogger.getLogger(LogModule.connection);
   
   transport_pkg.IGameTransport? _transport;
+  ManualSignalingStrategy? _manualStrategy;
   bool _isHost = false;
   StreamSubscription<Map<String, dynamic>>? _messageSubscription;
   StreamSubscription<void>? _disconnectSubscription;
   StreamSubscription<transport_pkg.ConnectionState>? _stateSubscription;
+  StreamSubscription<SignalingState>? _signalingSubscription;
 
-  /// Expose transport for ChatBloc
+  /// Expose transport for ChatBloc and GameBloc
   transport_pkg.IGameTransport? get transport => _transport;
   bool get isHost => _isHost;
 
@@ -38,24 +49,68 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   ) async {
     try {
       _isHost = true;
-      _log.d('HostGameEvent received, starting host flow...');
-      // Create host transport
-      final transport = WebRTCTransport(isHost: true);
-      _transport = transport;
-      _log.d('Host transport created');
+      _log.d('HostGameEvent received, mode: ${event.mode}');
 
-      // Initialize and get offer
-      final signalData = await transport.initialize();
-      _log.d('Host initialized, offer generated');
-
-      // Listen for messages
-      _setupListeners();
-
-      emit(HostingState(signalData));
-      _log.d('Emitted HostingState with offer');
+      if (event.mode == SignalingMode.auto) {
+        await _hostAutoMode(emit);
+      } else {
+        await _hostManualMode(emit);
+      }
     } catch (e) {
+      _log.e('Host error: $e');
       emit(ConnectionErrorState('Failed to host: $e'));
     }
+  }
+
+  Future<void> _hostAutoMode(Emitter<ConnectionState> emit) async {
+    _log.d('Host: Auto mode - requesting session code...');
+    
+    // Request session code from backend
+    final sessionCode = await _createSession();
+    _log.d('Session code received: $sessionCode');
+    
+    // Create auto signaling strategy
+    final strategy = AutoSignalingStrategy(
+      backendUrl: AppConfig.signalingServerUrl,
+      sessionCode: sessionCode,
+    );
+    
+    // Create transport
+    final transport = WebRTCTransport(signalingStrategy: strategy);
+    _transport = transport;
+    
+    // Set up listeners
+    _setupListeners();
+    
+    // Emit hosting state with session code
+    emit(HostingState(mode: SignalingMode.auto, sessionCode: sessionCode));
+    
+    // Start connection process
+    await transport.establishConnection(true);
+    _log.d('Auto host connection process started');
+  }
+
+  Future<void> _hostManualMode(Emitter<ConnectionState> emit) async {
+    _log.d('Host: Manual mode - generating offer...');
+    
+    // Create manual signaling strategy
+    final strategy = ManualSignalingStrategy();
+    _manualStrategy = strategy;
+    
+    // Create transport
+    final transport = WebRTCTransport(signalingStrategy: strategy);
+    _transport = transport;
+    
+    // Set up listeners
+    _setupListeners();
+    _setupManualSignalingListener();
+    
+    // Emit initial hosting state
+    emit(const HostingState(mode: SignalingMode.manual));
+    
+    // Start connection process (will generate offer)
+    await transport.establishConnection(true);
+    _log.d('Manual host connection process started');
   }
 
   Future<void> _onJoinGame(
@@ -64,66 +119,149 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   ) async {
     try {
       _isHost = false;
-      _log.d('JoinGameEvent received, starting join flow...');
-      emit(const JoiningState());
+      _log.d('JoinGameEvent received, mode: ${event.mode}');
 
-      // Create joiner transport
-      final transport = WebRTCTransport(isHost: false);
-      _transport = transport;
-      _log.d('Joiner transport created');
-
-      // Initialize
-      await transport.initialize();
-      _log.d('Joiner transport initialized');
-
-      // Set up message listeners only (not state listener yet - we need to show answer first)
-      _setupMessageListeners();
-      _log.d('Joiner message listeners set up');
-
-      // Connect using signaling data (offer from host)
-      await transport.connect(event.signalData);
-      _log.d('Joiner connect() completed');
-
-      // Get answer and emit state with it
-      final answer = await transport.getAnswer();
-      if (answer != null) {
-        _log.d('Answer generated, emitting JoiningWaitingForHostState');
-        emit(JoiningWaitingForHostState(answer));
+      if (event.mode == SignalingMode.auto) {
+        if (event.sessionCode == null) {
+          emit(const ConnectionErrorState('Session code required for auto mode'));
+          return;
+        }
+        await _joinAutoMode(event.sessionCode!, emit);
+      } else {
+        if (event.offerString == null) {
+          emit(const ConnectionErrorState('Offer string required for manual mode'));
+          return;
+        }
+        await _joinManualMode(event.offerString!, emit);
       }
-
-      // NOW set up state listener - connection is established but we've shown the answer first
-      _setupStateListener();
-      _log.d('Joiner state listener set up, will auto-navigate when ready');
-
-      // Wait for connection to establish
-      // Will emit ConnectedState when data channel opens
     } catch (e) {
+      _log.e('Join error: $e');
       emit(ConnectionErrorState('Failed to join: $e'));
     }
   }
 
-  Future<void> _onHostReceiveAnswer(
-    HostReceiveAnswerEvent event,
+  Future<void> _joinAutoMode(
+    String sessionCode,
+    Emitter<ConnectionState> emit,
+  ) async {
+    _log.d('Joiner: Auto mode - connecting to session $sessionCode...');
+    emit(const JoiningState());
+    
+    // Create auto signaling strategy
+    final strategy = AutoSignalingStrategy(
+      backendUrl: AppConfig.signalingServerUrl,
+      sessionCode: sessionCode,
+    );
+    
+    // Create transport
+    final transport = WebRTCTransport(signalingStrategy: strategy);
+    _transport = transport;
+    
+    // Set up listeners
+    _setupListeners();
+    
+    // Start connection process
+    await transport.establishConnection(false);
+    _log.d('Auto joiner connection process started');
+  }
+
+  Future<void> _joinManualMode(
+    String offerString,
+    Emitter<ConnectionState> emit,
+  ) async {
+    _log.d('Joiner: Manual mode - processing offer...');
+    emit(const JoiningState());
+    
+    // Create manual signaling strategy
+    final strategy = ManualSignalingStrategy();
+    _manualStrategy = strategy;
+    
+    // Create transport
+    final transport = WebRTCTransport(signalingStrategy: strategy);
+    _transport = transport;
+    
+    // Set up listeners
+    _setupListeners();
+    _setupManualSignalingListener();
+    
+    // Start connection process
+    await transport.establishConnection(false);
+    
+    // Provide offer to strategy
+    await strategy.receiveOffer(offerString);
+    _log.d('Manual joiner offer processed');
+  }
+
+  Future<void> _onManualHostReceiveAnswer(
+    ManualHostReceiveAnswerEvent event,
     Emitter<ConnectionState> emit,
   ) async {
     try {
-      _log.d('Host received answer, connecting...');
+      _log.d('Manual host receiving answer...');
       
-      // Process the answer
-      await _transport?.connect(event.answerData);
+      if (_manualStrategy == null) {
+        throw Exception('Manual strategy not initialized');
+      }
       
-      // Connection should establish soon via state listener
-      emit(const JoiningState()); // Show connecting state
+      await _manualStrategy!.receiveAnswer(event.answerString);
+      _log.d('Manual host answer processed, connection should complete');
     } catch (e) {
+      _log.e('Error receiving answer: $e');
       emit(ConnectionErrorState('Failed to process answer: $e'));
     }
   }
-  Future<void> _onHostReadyForAnswer(
-    HostReadyForAnswerEvent event,
+
+  Future<void> _onManualJoinerReceiveOffer(
+    ManualJoinerReceiveOfferEvent event,
     Emitter<ConnectionState> emit,
   ) async {
-    emit(HostingWaitingForAnswerState(event.signalData));
+    try {
+      _log.d('Manual joiner receiving offer...');
+      
+      if (_manualStrategy == null) {
+        throw Exception('Manual strategy not initialized');
+      }
+      
+      await _manualStrategy!.receiveOffer(event.offerString);
+      _log.d('Manual joiner offer processed');
+    } catch (e) {
+      _log.e('Error receiving offer: $e');
+      emit(ConnectionErrorState('Failed to process offer: $e'));
+    }
   }
+
+  Future<void> _onResetConnection(
+    ResetConnectionEvent event,
+    Emitter<ConnectionState> emit,
+  ) async {
+    _log.d('Resetting connection...');
+    await _cleanup();
+    emit(const ConnectionIdleState());
+  }
+
+  void _setupManualSignalingListener() {
+    _signalingSubscription = _manualStrategy?.onStateChanged.listen((state) {
+      _log.d('Manual signaling state: ${state.phase}');
+      
+      if (state.phase == SignalingPhase.exchanging) {
+        if (state.offerSdp != null) {
+          // Host generated offer
+          _log.d('Manual offer generated, adding event');
+          add(ManualOfferGeneratedEvent(state.offerSdp!));
+        } else if (state.answerSdp != null) {
+          // Joiner generated answer
+          _log.d('Manual answer generated, adding event');
+          add(ManualAnswerGeneratedEvent(state.answerSdp!));
+        }
+      }
+    });
+  }
+
+  void _setupListeners() {
+    _setupMessageListeners();
+    _setupStateListener();
+  }
+
   void _setupMessageListeners() {
     _messageSubscription = _transport?.onMessage.listen((data) {
       add(MessageReceivedEvent(data));
@@ -135,7 +273,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   }
 
   void _setupStateListener() {
-    // Check if already connected (for joiners, connection may establish during connect())
+    // Check if already connected
     final currentState = _transport?.connectionState;
     _log.d('Setting up state listener, current state: $currentState');
     if (currentState == transport_pkg.ConnectionState.connected) {
@@ -145,7 +283,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     
     // Listen for future connection state changes
     _stateSubscription = _transport?.onStateChanged.listen((transportState) {
-      _log.d('State changed: $transportState');
+      _log.d('Transport state changed: $transportState');
       if (transportState == transport_pkg.ConnectionState.connected) {
         _log.d('Connection established, adding event');
         add(const ConnectionEstablishedEvent());
@@ -155,15 +293,34 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     });
   }
 
-  void _setupListeners() {
-    _setupMessageListeners();
-    _setupStateListener();
+  Future<String> _createSession() async {
+    try {
+      // Convert WebSocket URL to HTTP URL for REST endpoint
+      final wsUrl = AppConfig.signalingServerUrl;
+      final httpUrl = wsUrl
+          .replaceFirst('ws://', 'http://')
+          .replaceFirst('wss://', 'https://');
+      
+      final url = Uri.parse('$httpUrl/api/session');
+      final response = await http.post(url);
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to create session: ${response.statusCode}');
+      }
+      
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return data['sessionCode'] as String;
+    } catch (e) {
+      _log.e('Error creating session: $e');
+      throw Exception('Failed to create session: $e');
+    }
   }
 
   Future<void> _onConnectionEstablished(
     ConnectionEstablishedEvent event,
     Emitter<ConnectionState> emit,
   ) async {
+    _log.d('Connection established!');
     emit(const ConnectedState());
   }
 
@@ -171,6 +328,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     ConnectionFailedEvent event,
     Emitter<ConnectionState> emit,
   ) async {
+    _log.e('Connection failed: ${event.error}');
     emit(ConnectionErrorState(event.error));
   }
 
@@ -214,9 +372,24 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   ) async {
     _log.d('Disconnecting...');
     await _cleanup();
-    // Emit initial state so lobby shows menu selection
     emit(const ConnectionIdleState());
     _log.d('Reset to initial state');
+  }
+
+  Future<void> _onManualOfferGenerated(
+    ManualOfferGeneratedEvent event,
+    Emitter<ConnectionState> emit,
+  ) async {
+    _log.d('Manual offer generated event handler');
+    emit(ManualWaitingForAnswerState(event.offerString));
+  }
+
+  Future<void> _onManualAnswerGenerated(
+    ManualAnswerGeneratedEvent event,
+    Emitter<ConnectionState> emit,
+  ) async {
+    _log.d('Manual answer generated event handler');
+    emit(ManualAnswerReadyState(event.answerString));
   }
 
   Future<void> _cleanup() async {
@@ -224,9 +397,11 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     await _messageSubscription?.cancel();
     await _disconnectSubscription?.cancel();
     await _stateSubscription?.cancel();
+    await _signalingSubscription?.cancel();
     _log.d('Subscriptions cancelled');
     await _transport?.dispose();
     _transport = null;
+    _manualStrategy = null;
     _log.d('Cleanup complete');
   }
 

@@ -14,6 +14,7 @@ class AppLogger {
   static const _moduleLevels = {
     LogModule.webrtc: Level.debug,      // WebRTC transport layer
     LogModule.connection: Level.debug,  // Connection state management
+    LogModule.signaling: Level.debug,   // Signaling strategies (WebSocket, manual)
     LogModule.chat: Level.off,         // Chat functionality
     LogModule.game: Level.debug,         // Game logic (future)
     LogModule.ui: Level.debug,           // UI events (future)
@@ -54,6 +55,7 @@ class _ModuleFilter extends LogFilter {
 enum LogModule {
   webrtc,
   connection,
+  signaling,
   chat,
   game,
   ui,

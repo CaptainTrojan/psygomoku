@@ -134,25 +134,31 @@ void main() {
   });
 
   group('Connection States', () {
-    test('HostingState preserves signal data', () {
-      const signalData = 'test-offer-data';
-      const state = HostingState(signalData);
+    test('HostingState preserves mode and optional data', () {
+      const state = HostingState(
+        mode: SignalingMode.manual,
+        offerString: 'test-offer-data',
+      );
       
-      expect(state.signalData, equals(signalData));
+      expect(state.mode, equals(SignalingMode.manual));
+      expect(state.offerString, equals('test-offer-data'));
     });
 
-    test('HostingWaitingForAnswerState preserves signal data', () {
-      const signalData = 'test-offer-data';
-      const state = HostingWaitingForAnswerState(signalData);
+    test('HostingState supports auto mode with session code', () {
+      const state = HostingState(
+        mode: SignalingMode.auto,
+        sessionCode: '1234',
+      );
       
-      expect(state.signalData, equals(signalData));
+      expect(state.mode, equals(SignalingMode.auto));
+      expect(state.sessionCode, equals('1234'));
     });
 
-    test('JoiningWaitingForHostState preserves answer data', () {
-      const answerData = 'test-answer-data';
-      const state = JoiningWaitingForHostState(answerData);
+    test('ManualWaitingForAnswerState preserves offer', () {
+      const offer = 'test-offer-data';
+      const state = ManualWaitingForAnswerState(offer);
       
-      expect(state.answerData, equals(answerData));
+      expect(state.offerString, equals(offer));
     });
 
     test('ConnectionErrorState preserves error message', () {
@@ -176,8 +182,14 @@ void main() {
       );
       
       expect(
-        const HostingState('data'),
-        equals(const HostingState('data')),
+        const HostingState(
+          mode: SignalingMode.manual,
+          offerString: 'data',
+        ),
+        equals(const HostingState(
+          mode: SignalingMode.manual,
+          offerString: 'data',
+        )),
       );
       
       expect(
@@ -187,8 +199,14 @@ void main() {
       
       // Different states should not be equal
       expect(
-        const HostingState('data1'),
-        isNot(equals(const HostingState('data2'))),
+        const HostingState(
+          mode: SignalingMode.manual,
+          offerString: 'data1',
+        ),
+        isNot(equals(const HostingState(
+          mode: SignalingMode.manual,
+          offerString: 'data2',
+        ))),
       );
     });
   });
