@@ -15,15 +15,16 @@ class PlayerInfoBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stoneColor = player.stoneColor;
-    final avatarColorValue = int.tryParse(player.avatarColor.replaceFirst('#', ''), radix: 16);
+    final avatarColorValue =
+        int.tryParse(player.avatarColor.replaceFirst('#', ''), radix: 16);
     final avatarColor = avatarColorValue != null
         ? Color(0xFF000000 + avatarColorValue)
         : Colors.grey;
 
     return Container(
-      height: 50,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 60,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1E3E),
         borderRadius: BorderRadius.circular(12),
@@ -77,6 +78,8 @@ class PlayerInfoBar extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
                   children: [
@@ -94,7 +97,8 @@ class PlayerInfoBar extends StatelessWidget {
                     if (player.isHost) ...[
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: Colors.amber.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(3),
@@ -112,7 +116,7 @@ class PlayerInfoBar extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   '${player.wins}W ${player.losses}L ${player.draws}D • ${player.winRate.toStringAsFixed(0)}%',
                   style: TextStyle(

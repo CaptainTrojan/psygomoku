@@ -11,9 +11,11 @@ class GameBoardWidget extends StatelessWidget {
   final void Function(Position)? onPositionTapped;
   final Position? selectedPosition;
   final VoidCallback? onConfirmSelection;
-  final Position? guessMarkerPosition; // Position where guess marker should be shown
+  final Position?
+      guessMarkerPosition; // Position where guess marker should be shown
   final Color? guessMarkerColor; // Color of the guess marker
-  final Position? previewMarkedPosition; // Position of own mark preview (gray, smaller)
+  final Position?
+      previewMarkedPosition; // Position of own mark preview (gray, smaller)
   final Position? lastPlayedPosition; // Last stone position for border
   final StoneColor? localPlayerColor;
   final StoneColor? remotePlayerColor;
@@ -79,88 +81,96 @@ class GameBoardWidget extends StatelessWidget {
                         }
                       }
                     : null,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 0.5,
-                    ),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Grid intersection point
-                      Center(
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cellSize = constraints.maxWidth;
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 0.5,
                         ),
                       ),
-
-                      // Selection indicator
-                      if (selectedPosition == position && stone == null)
-                        const SelectionIndicatorWidget(),
-
-                      // Preview mark (gray, smaller stone for marker's own mark)
-                      if (previewMarkedPosition == position && stone == null)
-                        Padding(
-                          padding: const EdgeInsets.all(8.0), // More padding = smaller
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey.withOpacity(0.3),
-                              border: Border.all(
-                                color: Colors.grey.withOpacity(0.5),
-                                width: 1,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Grid intersection point
+                          Center(
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
                               ),
                             ),
                           ),
-                        ),
 
-                      // Stone (if placed)
-                      if (stone != null)
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: StoneWidget(
-                            stone: stone,
-                            isLastPlayed: lastPlayedPosition == position,
-                            localPlayerColor: localPlayerColor,
-                            remotePlayerColor: remotePlayerColor,
-                          ),
-                        ),
-                      
-                      // Guess marker (cross/X) - shows even over stones
-                      if (guessMarkerPosition == position)
-                        Center(
-                          child: Icon(
-                            Icons.close,
-                            size: 32,
-                            color: (guessMarkerColor ?? Colors.white).withOpacity(0.9),
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.8),
-                                blurRadius: 3,
+                          // Selection indicator
+                          if (selectedPosition == position && stone == null)
+                            const SelectionIndicatorWidget(),
+
+                          // Preview mark (gray, smaller stone for marker's own mark)
+                          if (previewMarkedPosition == position &&
+                              stone == null)
+                            Padding(
+                              padding: EdgeInsets.all(cellSize *
+                                  0.25), // 25% padding = smaller circle
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey.withOpacity(0.3),
+                                  border: Border.all(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
-                        ),
-
-                      // Hover effect (for desktop)
-                      if (onPositionTapped != null && stone == null)
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.transparent,
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
+
+                          // Stone (if placed)
+                          if (stone != null)
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: StoneWidget(
+                                stone: stone,
+                                isLastPlayed: lastPlayedPosition == position,
+                                localPlayerColor: localPlayerColor,
+                                remotePlayerColor: remotePlayerColor,
+                              ),
+                            ),
+
+                          // Guess marker (cross/X) - shows even over stones
+                          if (guessMarkerPosition == position)
+                            Center(
+                              child: Icon(
+                                Icons.close,
+                                size: cellSize * 0.7, // 70% of cell size
+                                color: (guessMarkerColor ?? Colors.white)
+                                    .withOpacity(0.9),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.8),
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // Hover effect (for desktop)
+                          if (onPositionTapped != null && stone == null)
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               );
             },
